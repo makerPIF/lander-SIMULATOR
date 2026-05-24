@@ -1,0 +1,308 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);}
+.wrap{color:var(--color-text-primary);padding:.5rem 0 2rem;}
+.sec{margin-bottom:2rem;}
+.sec-h{font-size:15px;font-weight:500;margin-bottom:12px;border-bottom:.5px solid var(--color-border-tertiary);padding-bottom:6px;}
+.formula-card{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);border:.5px solid var(--color-border-tertiary);padding:16px;margin-bottom:12px;}
+.formula-box{background:var(--color-background-primary);border-radius:var(--border-radius-md);border:1px solid var(--color-border-info);padding:12px;font-family:var(--font-mono);font-size:13px;text-align:center;color:var(--color-text-info);margin:10px 0;font-weight:500;}
+.note{font-size:12px;color:var(--color-text-secondary);line-height:1.7;margin-top:6px;}
+.planet-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.pc{border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);padding:10px 12px;background:var(--color-background-primary);}
+.pc .pname{font-size:12px;font-weight:500;margin-bottom:4px;}
+.pc .pdata{font-size:11px;color:var(--color-text-secondary);line-height:1.9;}
+.pc .radius-bar{height:6px;border-radius:3px;margin:6px 0 2px;transition:width .3s;}
+.pc .radius-val{font-size:12px;font-weight:500;}
+.impossible{background:var(--color-background-danger);border-color:var(--color-border-danger);}
+.impossible .pname{color:var(--color-text-danger);}
+.excellent{background:var(--color-background-success);border-color:var(--color-border-success);}
+.excellent .pname{color:var(--color-text-success);}
+.caution{background:var(--color-background-warning);border-color:var(--color-border-warning);}
+.caution .pname{color:var(--color-text-warning);}
+.mass-row{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:12px;}
+.mass-bar{flex:1;height:8px;border-radius:4px;background:var(--color-border-tertiary);position:relative;}
+.mass-fill{height:100%;border-radius:4px;}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);}
+.leg-dot{width:10px;height:10px;border-radius:50%;}
+.mission-row{font-size:12px;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);display:grid;grid-template-columns:1fr 80px 80px 80px;gap:4px;align-items:center;}
+.mission-row:last-child{border-bottom:none;}
+.mission-row .mh{font-weight:500;font-size:11px;color:var(--color-text-secondary);}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500;}
+.tag-red{background:var(--color-background-danger);color:var(--color-text-danger);}
+.tag-green{background:var(--color-background-success);color:var(--color-text-success);}
+.tag-amber{background:var(--color-background-warning);color:var(--color-text-warning);}
+.step-flow{display:flex;flex-direction:column;gap:0;}
+.sf-step{display:flex;align-items:flex-start;gap:10px;padding:10px 0;}
+.sf-num{width:24px;height:24px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;margin-top:1px;}
+.sf-line{width:1px;background:var(--color-border-secondary);margin:0 12px;align-self:stretch;}
+.calc-input{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+.calc-input label{font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px;}
+.calc-input input{width:70px;padding:5px 7px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-mono);}
+.calc-result{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;font-size:13px;margin-top:8px;line-height:2;}
+.calc-result .big{font-size:22px;font-weight:500;color:var(--color-text-info);}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">Parachute size physics guide for all solar system planets</h2>
+
+<!-- SECTION 1: Force diagram -->
+<div class="sec">
+  <div class="sec-h">① Forces acting on a descending lander</div>
+  <svg viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:620px;display:block;margin-bottom:8px" role="img">
+    <title>Force diagram: weight vs drag on a descending lander</title>
+    <defs>
+      <marker id="arr-up" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+        <polygon points="0 6,4 0,8 6" fill="#1D9E75"/>
+      </marker>
+      <marker id="arr-dn" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+        <polygon points="0 0,4 6,8 0" fill="#D85A30"/>
+      </marker>
+      <marker id="arr-eq" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+        <polygon points="0 6,4 0,8 6" fill="#1D9E75"/>
+      </marker>
+    </defs>
+    <!-- Sky -->
+    <rect x="0" y="0" width="620" height="160" rx="8" fill="#E6F1FB" opacity=".4"/>
+    <rect x="0" y="160" width="620" height="40" rx="0" fill="#9FE1CB" opacity=".5"/>
+    <!-- Planet surface line -->
+    <line x1="0" y1="160" x2="620" y2="160" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+    <!-- LEFT: Falling too fast (no chute) -->
+    <rect x="60" y="50" width="60" height="40" rx="4" fill="#F5C4B3" stroke="#F0997B" stroke-width="1"/>
+    <text x="90" y="75" text-anchor="middle" font-size="11" fill="#712B13">Lander</text>
+    <!-- Weight arrow DOWN (large) -->
+    <line x1="90" y1="90" x2="90" y2="148" stroke="#D85A30" stroke-width="2.5" marker-end="url(#arr-dn)"/>
+    <!-- Drag arrow UP (small) -->
+    <line x1="90" y1="50" x2="90" y2="26" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr-up)"/>
+    <text x="90" y="18" text-anchor="middle" font-size="9" fill="#0F6E56">Drag (small)</text>
+    <text x="90" y="170" text-anchor="middle" font-size="9" fill="#993C1D">Weight (large)</text>
+    <text x="90" y="185" text-anchor="middle" font-size="10" fill="#D85A30" font-weight="500">❌ Too fast</text>
+    <text x="90" y="10" text-anchor="middle" font-size="9" fill="#712B13">No parachute</text>
+
+    <!-- CENTER: Parachute deployed -->
+    <rect x="250" y="80" width="60" height="40" rx="4" fill="#B5D4F4" stroke="#85B7EB" stroke-width="1"/>
+    <text x="280" y="105" text-anchor="middle" font-size="11" fill="#042C53">Lander</text>
+    <!-- Parachute dome -->
+    <path d="M240 78 Q250 40 280 38 Q310 40 320 78" fill="#85B7EB" opacity=".5" stroke="#378ADD" stroke-width="1.5"/>
+    <line x1="248" y1="74" x2="258" y2="80" stroke="#378ADD" stroke-width=".8"/>
+    <line x1="280" y1="38" x2="280" y2="80" stroke="#378ADD" stroke-width=".8"/>
+    <line x1="312" y1="74" x2="302" y2="80" stroke="#378ADD" stroke-width=".8"/>
+    <!-- Weight arrow DOWN (large) -->
+    <line x1="280" y1="120" x2="280" y2="148" stroke="#D85A30" stroke-width="2.5" marker-end="url(#arr-dn)"/>
+    <!-- Drag arrow UP (equal) -->
+    <line x1="280" y1="80" x2="280" y2="22" stroke="#1D9E75" stroke-width="2.5" marker-end="url(#arr-up)"/>
+    <text x="315" y="55" font-size="9" fill="#0F6E56">Drag = Weight</text>
+    <text x="280" y="170" text-anchor="middle" font-size="9" fill="#993C1D">Weight</text>
+    <text x="280" y="185" text-anchor="middle" font-size="10" fill="#1D9E75" font-weight="500">✓ Terminal velocity</text>
+    <text x="280" y="10" text-anchor="middle" font-size="9" fill="#0C447C">With parachute</text>
+
+    <!-- RIGHT: Formula -->
+    <rect x="400" y="20" width="200" height="130" rx="6" fill="none" stroke="#AFA9EC" stroke-width="1"/>
+    <text x="500" y="40" text-anchor="middle" font-size="11" fill="#534AB7" font-weight="500">Key equations</text>
+    <text x="415" y="62" font-size="10" fill="#3C3489">F_drag = ½ρv²·Cd·A</text>
+    <text x="415" y="82" font-size="10" fill="#3C3489">At terminal velocity:</text>
+    <text x="415" y="98" font-size="10" fill="#3C3489">F_drag = m·g</text>
+    <text x="415" y="118" font-size="10" fill="#534AB7" font-weight="500">v_t = √(2mg / ρCdA)</text>
+    <text x="415" y="138" font-size="10" fill="#534AB7" font-weight="500">r = √(2mg / πρCdv²)</text>
+  </svg>
+  <div class="note">At terminal velocity, drag force exactly balances gravity. The parachute area (A) controls how early this balance is reached — larger parachute = lower terminal velocity.</div>
+</div>
+
+<!-- SECTION 2: Interactive calculator -->
+<div class="sec">
+  <div class="sec-h">② Live parachute radius calculator</div>
+  <div class="formula-card">
+    <div class="calc-input">
+      <div><label>Mass (kg)</label><input type="number" id="c-mass" value="10" min="1" max="10000" oninput="calc()"></div>
+      <div><label>Target speed (m/s)</label><input type="number" id="c-spd" value="3" min="0.5" max="20" step="0.5" oninput="calc()"></div>
+      <div><label>Planet</label>
+        <select id="c-planet" onchange="calc()" style="padding:5px 7px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);width:110px">
+          <option value="8.87,65.0">♀ Venus</option>
+          <option value="9.81,1.225">⊕ Earth</option>
+          <option value="3.72,0.020" selected>♂ Mars</option>
+          <option value="24.79,0.16">♃ Jupiter</option>
+          <option value="10.44,0.10">♄ Saturn</option>
+          <option value="8.87,0.09">⛢ Uranus</option>
+          <option value="11.15,0.12">♆ Neptune</option>
+          <option value="3.7,0.0001">☿ Mercury</option>
+          <option value="1.62,0">☽ Moon</option>
+        </select>
+      </div>
+    </div>
+    <div class="calc-result" id="calc-out"></div>
+  </div>
+</div>
+
+<!-- SECTION 3: Planet cards -->
+<div class="sec">
+  <div class="sec-h">③ Required radius by planet (10 kg lander, 3 m/s target)</div>
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#2da44e"></div>✅ Small parachute works</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#d1a317"></div>⚠️ Large parachute + rockets</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#cf222e"></div>❌ No atmosphere / impossible</div>
+  </div>
+  <div class="planet-grid" id="planet-cards"></div>
+</div>
+
+<!-- SECTION 4: Real missions -->
+<div class="sec">
+  <div class="sec-h">④ Real mission parachute data</div>
+  <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;">
+    <div class="mission-row">
+      <div class="mh">Mission</div><div class="mh" style="text-align:center">Mass</div><div class="mh" style="text-align:center">Chute ⌀</div><div class="mh" style="text-align:center">Planet</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Perseverance</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">NASA 2021</span></div>
+      <div style="text-align:center;font-size:12px">1,025 kg</div>
+      <div style="text-align:center"><span class="tag tag-amber">21.5 m</span></div>
+      <div style="text-align:center;font-size:12px">♂ Mars</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Curiosity</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">NASA 2012</span></div>
+      <div style="text-align:center;font-size:12px">900 kg</div>
+      <div style="text-align:center"><span class="tag tag-amber">19.7 m</span></div>
+      <div style="text-align:center;font-size:12px">♂ Mars</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Huygens probe</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">ESA 2005</span></div>
+      <div style="text-align:center;font-size:12px">319 kg</div>
+      <div style="text-align:center"><span class="tag tag-green">8.3 m</span></div>
+      <div style="text-align:center;font-size:12px">♄ Titan</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Galileo probe</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">NASA 1995</span></div>
+      <div style="text-align:center;font-size:12px">339 kg</div>
+      <div style="text-align:center"><span class="tag tag-green">3.7 m</span></div>
+      <div style="text-align:center;font-size:12px">♃ Jupiter</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Apollo CM</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">NASA 1969</span></div>
+      <div style="text-align:center;font-size:12px">5,800 kg</div>
+      <div style="text-align:center"><span class="tag tag-green">23 m ×3</span></div>
+      <div style="text-align:center;font-size:12px">⊕ Earth</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Venera 9</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">USSR 1975</span></div>
+      <div style="text-align:center;font-size:12px">660 kg</div>
+      <div style="text-align:center"><span class="tag tag-green">disc brake</span></div>
+      <div style="text-align:center;font-size:12px">♀ Venus</div>
+    </div>
+    <div class="mission-row">
+      <div><strong>Apollo LM</strong><br><span style="font-size:10px;color:var(--color-text-secondary)">NASA 1969</span></div>
+      <div style="text-align:center;font-size:12px">15,000 kg</div>
+      <div style="text-align:center"><span class="tag tag-red">none</span></div>
+      <div style="text-align:center;font-size:12px">☽ Moon</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: EDL phases -->
+<div class="sec">
+  <div class="sec-h">⑤ Entry, Descent & Landing (EDL) phases</div>
+  <div class="step-flow">
+    <div class="sf-step">
+      <div class="sf-num">1</div>
+      <div>
+        <div style="font-size:13px;font-weight:500">Aeroshell / heatshield entry</div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Hypersonic drag + 1,500°C heating. Entry speed: 5–20 km/s → ~1.5 km/s. Used on: all planets with atmosphere.</div>
+      </div>
+    </div>
+    <div style="width:1px;height:12px;background:var(--color-border-tertiary);margin-left:12px"></div>
+    <div class="sf-step">
+      <div class="sf-num">2</div>
+      <div>
+        <div style="font-size:13px;font-weight:500">Parachute deployment <span class="tag tag-amber" style="margin-left:4px">if atmosphere</span></div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Subsonic/supersonic drag. 1.5 km/s → ~80-300 km/h. Skipped on Moon & Mercury. Very short on Venus.</div>
+      </div>
+    </div>
+    <div style="width:1px;height:12px;background:var(--color-border-tertiary);margin-left:12px"></div>
+    <div class="sf-step">
+      <div class="sf-num">3</div>
+      <div>
+        <div style="font-size:13px;font-weight:500">Rocket retropropulsion <span class="tag tag-red" style="margin-left:4px">Moon/Mars critical</span></div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">GNC takes full control. Final 2 km → 0 m/s. Uses IMU + radar altimeter + computer. This is the GNC simulator's focus.</div>
+      </div>
+    </div>
+    <div style="width:1px;height:12px;background:var(--color-border-tertiary);margin-left:12px"></div>
+    <div class="sf-step">
+      <div class="sf-num">4</div>
+      <div>
+        <div style="font-size:13px;font-weight:500">Landing gear impact absorption</div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Final 1–2 m. Crushable legs, springs, or airbags absorb residual velocity (&lt;3 m/s target).</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const PLANETS_DATA=[
+  {sym:'☿',n:'Mercury',g:3.7,rho:0.0001,cls:'impossible',icon:'❌'},
+  {sym:'♀',n:'Venus',g:8.87,rho:65.0,cls:'excellent',icon:'✅'},
+  {sym:'⊕',n:'Earth',g:9.81,rho:1.225,cls:'excellent',icon:'✅'},
+  {sym:'☽',n:'Moon',g:1.62,rho:0,cls:'impossible',icon:'❌'},
+  {sym:'♂',n:'Mars',g:3.72,rho:0.020,cls:'caution',icon:'⚠️'},
+  {sym:'♃',n:'Jupiter',g:24.79,rho:0.16,cls:'caution',icon:'⚠️'},
+  {sym:'♄',n:'Saturn',g:10.44,rho:0.10,cls:'caution',icon:'⚠️'},
+  {sym:'⛢',n:'Uranus',g:8.87,rho:0.09,cls:'caution',icon:'⚠️'},
+  {sym:'♆',n:'Neptune',g:11.15,rho:0.12,cls:'caution',icon:'⚠️'},
+];
+const MASS=10,VT=3,CD=1.5;
+const MAX_R=15;
+
+function reqRadius(g,rho,m,v){
+  if(rho<=0) return Infinity;
+  const A=(2*m*g)/(rho*CD*v*v);
+  return Math.sqrt(A/Math.PI);
+}
+
+function buildCards(){
+  const grid=document.getElementById('planet-cards');
+  PLANETS_DATA.forEach(p=>{
+    const r=reqRadius(p.g,p.rho,MASS,VT);
+    const rDisp=isFinite(r)?r.toFixed(2)+'m':'∞';
+    const barW=isFinite(r)?Math.min(100,r/MAX_R*100):100;
+    const barCol=p.cls==='impossible'?'#cf222e':p.cls==='excellent'?'#2da44e':'#d1a317';
+    const d=document.createElement('div');
+    d.className='pc '+p.cls;
+    d.innerHTML=`
+      <div class="pname">${p.sym} ${p.n} ${p.icon}</div>
+      <div class="pdata">
+        g = ${p.g} m/s²<br>
+        ρ = ${p.rho} kg/m³
+      </div>
+      <div class="radius-bar"><div class="radius-bar" style="background:${barCol};width:${barW}%;max-width:100%;height:6px;border-radius:3px"></div></div>
+      <div class="radius-val" style="color:${barCol}">${p.icon==='❌'?'Impossible':p.icon==='✅'?rDisp+' radius':rDisp+' radius'}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+function calc(){
+  const m=parseFloat(document.getElementById('c-mass').value)||10;
+  const v=parseFloat(document.getElementById('c-spd').value)||3;
+  const sel=document.getElementById('c-planet').value.split(',');
+  const g=parseFloat(sel[0]), rho=parseFloat(sel[1]);
+  const out=document.getElementById('calc-out');
+  if(rho<=0){
+    out.innerHTML=`<span style="color:var(--color-text-danger);font-weight:500">❌ No atmosphere — parachute impossible.</span><br>
+      <span style="font-size:12px;color:var(--color-text-secondary)">Required rocket thrust: F = m × g = ${m} × ${g} = <strong>${(m*g).toFixed(1)} N minimum</strong></span>`;
+    return;
+  }
+  const A=(2*m*g)/(rho*CD*v*v);
+  const r=Math.sqrt(A/Math.PI);
+  const d=2*r;
+  const vt_noChute=Math.sqrt(2*m*g/(rho*0.5*Math.pow(0.3,2)*0.45));
+  out.innerHTML=`
+    <div>Required area: <strong>${A.toFixed(2)} m²</strong></div>
+    <div>Required radius: <span class="big">${r.toFixed(2)} m</span></div>
+    <div>Parachute diameter: <strong style="color:var(--color-text-success)">${d.toFixed(2)} m</strong></div>
+    <div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px">
+      Formula: r = √( 2 × ${m} × ${g} / (π × ${rho} × ${CD} × ${v}²) ) = √(${A.toFixed(2)}/π) ≈ ${r.toFixed(2)} m
+    </div>`;
+}
+
+buildCards();
+calc();
+</script>
