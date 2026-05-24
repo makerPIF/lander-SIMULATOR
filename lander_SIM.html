@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#090914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🚀 달착륙선 GNC 시뮬레이터</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#090914;--bg2:#10101e;--bg3:#16162a;
+  --text:#E0E0E0;--text2:#8888A8;
+  --border:#252538;--border2:#353550;
+  --accent:#F57C00;--r:8px;--rl:12px;
+}
+html,body{min-height:100%;background:var(--bg);}
+body{font-family:'Courier New',Courier,monospace;color:var(--text);max-width:480px;margin:0 auto;padding-bottom:40px;}
+.hdr{padding:14px 14px 10px;border-bottom:.5px solid var(--border);background:var(--bg2);}
+.hdr-title{font-size:16px;font-weight:bold;color:var(--accent);letter-spacing:.05em;}
+.hdr-sub{font-size:10px;color:var(--text2);margin-top:2px;}
+.tabs{display:flex;background:var(--bg2);border-bottom:.5px solid var(--border);}
+.tb{flex:1;padding:11px 2px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;
+  font-family:monospace;font-size:10.5px;color:var(--text2);transition:all .15s;}
+.tb.active{color:var(--accent);border-bottom-color:var(--accent);}
+.pane{padding:10px 12px 4px;}
+.card{background:var(--bg3);border-radius:var(--r);border:.5px solid var(--border);padding:12px;margin-bottom:8px;}
+.lbl{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;}
+.lbl span{color:var(--text);font-weight:500;}
+input[type=range]{width:100%;margin:3px 0 10px;height:4px;appearance:none;background:var(--border2);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;background:var(--accent);border-radius:50%;cursor:pointer;}
+input[type=text]{width:100%;padding:9px;background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:monospace;font-size:11px;margin-bottom:8px;}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px;}
+.pb{padding:7px 3px;border-radius:var(--r);border:.5px solid var(--border);background:var(--bg3);cursor:pointer;
+  text-align:center;font-size:11px;font-family:monospace;color:var(--text2);transition:all .15s;}
+.pb .sym{font-size:16px;display:block;margin-bottom:1px;}
+.pb .gv{font-size:9px;opacity:.6;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mc{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r);padding:10px;}
+.mc .v{font-size:22px;font-weight:500;}
+.mc .l{font-size:10px;color:var(--text2);margin-top:2px;}
+.btn{width:100%;padding:13px;background:var(--bg3);border:.5px solid var(--border2);
+  border-radius:var(--r);color:var(--text);cursor:pointer;font-size:13px;font-family:monospace;
+  margin-bottom:8px;transition:all .15s;}
+.btn:active{transform:scale(.97);}
+canvas{display:block;width:100%;border-radius:var(--r);border:.5px solid var(--border);}
+.cb{background:#0d1117;border:.5px solid #30363d;border-radius:var(--r);padding:10px;
+  overflow:auto;max-height:260px;font-size:9.5px;line-height:1.65;color:#c9d1d9;
+  font-family:'Courier New',monospace;white-space:pre;margin-bottom:8px;}
+.pr{font-size:10px;font-family:monospace;color:var(--text2);line-height:2;}
+.pr .pn{color:var(--accent);}
+.st{font-size:11px;color:var(--text2);font-weight:500;margin-bottom:8px;letter-spacing:.05em;}
+.ib{font-size:11px;color:var(--text2);line-height:1.8;}
+.ib strong{color:var(--accent);}
+.ib code{font-size:10px;color:var(--text);background:var(--bg2);padding:1px 4px;border-radius:3px;}
+.rc{border-radius:var(--r);padding:12px;margin-top:8px;border:1px solid;}
+.qrs{text-align:center;padding:16px 12px;}
+#qrc{display:inline-block;padding:12px;background:#fff;border-radius:var(--r);margin:12px auto;}
+#qrc img,#qrc canvas{display:block !important;}
+.qu{font-size:10px;color:var(--text2);word-break:break-all;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">🚀 달착륙선 GNC 시뮬레이터</div>
+  <div class="hdr-sub">주니어 엔지니어 미션 — 시뮬레이터 + 아두이노 코드 생성기 + QR 공유</div>
+</div>
+
+<div class="tabs">
+  <button class="tb active" id="tab-sim" onclick="sw('sim')">🚀 시뮬레이터</button>
+  <button class="tb" id="tab-ard" onclick="sw('ard')">⚙️ 아두이노</button>
+  <button class="tb" id="tab-qr"  onclick="sw('qr')">📱 QR 공유</button>
+</div>
+
+<!-- ======= SIM TAB ======= -->
+<div id="pane-sim" class="pane">
+  <div class="card" style="padding:8px 10px">
+    <div class="lbl">행성 선택 (Planet Selection)</div>
+    <div class="pg" id="pg"></div>
+    <div id="pc" style="display:flex;gap:10px;align-items:center;padding:4px 0"></div>
+  </div>
+  <div class="card">
+    <div class="st">── 착륙선 파라미터 ──</div>
+    <label class="lbl">낙하산 반지름: <span id="pR-v">1.5</span> m <span id="aw" style="color:#EF5350;display:none">(대기없음→무효)</span></label>
+    <input type="range" id="pR" min="0" max="5" step="0.1" value="1.5">
+    <label class="lbl">전체 무게: <span id="ms-v">10</span> kg</label>
+    <input type="range" id="ms" min="1" max="500" step="1" value="10">
+    <label class="lbl">초기 고도: <span id="a0-v">100</span> m</label>
+    <input type="range" id="a0" min="10" max="2000" step="10" value="100">
+    <div class="r2">
+      <div>
+        <label class="lbl">착륙선 가로: <span id="lw-v">30</span> cm</label>
+        <input type="range" id="lw" min="10" max="300" step="5" value="30">
+      </div>
+      <div>
+        <label class="lbl">지지대 길이: <span id="ll-v">15</span> cm</label>
+        <input type="range" id="ll" min="5" max="150" step="5" value="15">
+      </div>
+    </div>
+    <label class="lbl">풍속: <span id="ws-v">2</span> m/s</label>
+    <input type="range" id="ws" min="0" max="100" step="0.5" value="2">
+    <label class="lbl">풍향: <span id="wd-v">90°</span> <span id="wdd">(동→서)</span></label>
+    <input type="range" id="wd" min="0" max="355" step="5" value="90">
+  </div>
+  <button class="btn" id="sb" onclick="startSim()" style="border-color:var(--accent);color:var(--accent)">▶ 시뮬레이션 시작</button>
+  <canvas id="cv" width="420" height="300"></canvas>
+  <div id="ra"></div>
+</div>
+
+<!-- ======= ARDUINO TAB ======= -->
+<div id="pane-ard" class="pane" style="display:none">
+  <div class="card">
+    <div class="st">── 자율착륙 파라미터 조정 ──</div>
+    <label class="lbl">[N] 다리 전개 고도: <span id="th-v">10</span> cm</label>
+    <input type="range" id="th" min="3" max="80" step="1" value="10" oninput="uc()">
+    <label class="lbl">[C] 서보 전개 각도: <span id="ag-v">90</span>°</label>
+    <input type="range" id="ag" min="30" max="180" step="5" value="90" oninput="uc()">
+    <label class="lbl">[C] 전개 시간: <span id="dt-v">1500</span> ms (<span id="dt-s">1.5</span>초)</label>
+    <input type="range" id="dt" min="200" max="6000" step="100" value="1500" oninput="uc()">
+    <label class="lbl">[N] 기울기 임계값 (IMU raw): <span id="ti-v">8000</span></label>
+    <input type="range" id="ti" min="2000" max="16000" step="500" value="8000" oninput="uc()">
+    <label class="lbl">[G] 체크 주기: <span id="ck-v">500</span> ms</label>
+    <input type="range" id="ck" min="50" max="2000" step="50" value="500" oninput="uc()">
+  </div>
+  <div class="cb" id="cblk"></div>
+  <button class="btn" id="cpb" onclick="cpCode()" style="border-color:var(--accent);color:var(--accent)">📋 코드 복사 (클립보드)</button>
+  <div class="card">
+    <div class="st">📱 스마트폰/갤럭시탭 업로드 방법</div>
+    <div class="ib">
+      <strong>방법 1: ArduinoDroid (가장 추천)</strong><br>
+      Google Play → <code>ArduinoDroid</code> 검색·설치<br>
+      USB OTG 케이블로 아두이노 연결<br>
+      코드 붙여넣기 → 컴파일 → 업로드 버튼<br><br>
+      <strong>방법 2: Arduino Web Editor</strong><br>
+      크롬에서 <code>create.arduino.cc</code> 접속<br>
+      새 스케치 생성 → 코드 붙여넣기 → 업로드<br><br>
+      <strong>방법 3: Chrome Web Serial (갤럭시탭)</strong><br>
+      <code>chrome://flags</code> → Experimental Web Platform 활성화<br>
+      USB OTG 연결 후 Web Serial API 직접 사용<br><br>
+      <strong>방법 4: WiFi OTA (ESP32 보드)</strong><br>
+      아두이노 우노 → ESP32 교체 시 무선 업로드 가능
+    </div>
+  </div>
+  <div class="card">
+    <div class="st">🔌 배선 연결도 (Wiring Diagram)</div>
+    <div class="pr">
+      <div><span class="pn">HC-SR04</span> VCC → 5V | GND → GND</div>
+      <div><span class="pn">HC-SR04</span> TRIG → Pin <b>9</b></div>
+      <div><span class="pn">HC-SR04</span> ECHO → Pin <b>10</b></div>
+      <div><span class="pn">서보1</span>(앞-왼) → Pin <b>3</b></div>
+      <div><span class="pn">서보2</span>(앞-오) → Pin <b>5</b></div>
+      <div><span class="pn">서보3</span>(뒤-왼) → Pin <b>6</b></div>
+      <div><span class="pn">서보4</span>(뒤-오) → Pin <b>11</b></div>
+      <div><span class="pn">MPU6050</span> SDA → A4 | SCL → A5</div>
+      <div><span class="pn">상태 LED</span>(초록) → Pin <b>13</b> + 220Ω</div>
+      <div><span class="pn">경고 LED</span>(빨강) → Pin <b>12</b> + 220Ω</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= QR TAB ======= -->
+<div id="pane-qr" class="pane" style="display:none">
+  <div class="card">
+    <div class="st">📱 이 페이지 QR 코드</div>
+    <div class="ib" style="margin-bottom:10px">스마트폰 카메라로 스캔하면 바로 접속됩니다.</div>
+    <div class="qrs">
+      <div id="qrc"></div>
+      <div class="qu" id="qurl"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="st">🔗 직접 URL 입력하여 QR 생성</div>
+    <div class="ib" style="margin-bottom:8px">GitHub Pages 배포 후 URL을 입력하세요.</div>
+    <input type="text" id="curl" placeholder="https://아이디.github.io/lander-gnc/">
+    <button class="btn" onclick="genQR()" style="border-color:var(--accent);color:var(--accent)">🔄 QR 코드 생성</button>
+  </div>
+  <div class="card">
+    <div class="st">📤 GitHub Pages 배포 5단계</div>
+    <div class="ib">
+      <strong>① GitHub 로그인</strong><br>
+      <code>github.com</code> 접속 → 로그인 (또는 회원가입)<br><br>
+      <strong>② 새 저장소(Repository) 만들기</strong><br>
+      우상단 <code>+</code> 버튼 → New repository<br>
+      이름 입력: <code>lander-gnc</code> → Public 선택<br>
+      → Create repository 클릭<br><br>
+      <strong>③ 파일 업로드</strong><br>
+      Add file → Upload files 클릭<br>
+      다운로드한 <code>index.html</code> 드래그 앤 드롭<br>
+      → Commit changes 클릭<br><br>
+      <strong>④ GitHub Pages 활성화</strong><br>
+      Settings 탭 → Pages 메뉴<br>
+      Source: Deploy from a branch → main → / (root)<br>
+      → Save 클릭 (1~3분 후 URL 생성)<br><br>
+      <strong>⑤ QR 코드 생성</strong><br>
+      생성된 URL: <code>https://아이디.github.io/lander-gnc/</code><br>
+      위 입력칸에 붙여넣기 → QR 생성 → 스캔!
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ===== PLANET DATA =====
+const PL=[
+  {id:'mercury',n:'수성',sym:'☿',g:3.7, rho:0.0001,col:'#BDBDBD',gnd:'#616161',ha:false},
+  {id:'venus',  n:'금성',sym:'♀',g:8.87,rho:65.0,  col:'#FFD54F',gnd:'#8D6E63',ha:true},
+  {id:'earth',  n:'지구',sym:'⊕',g:9.81,rho:1.225, col:'#42A5F5',gnd:'#388E3C',ha:true},
+  {id:'moon',   n:'달',  sym:'☽',g:1.62,rho:0,     col:'#EEEEEE',gnd:'#757575',ha:false},
+  {id:'mars',   n:'화성',sym:'♂',g:3.72,rho:0.020, col:'#EF5350',gnd:'#6D4C41',ha:true},
+  {id:'jupiter',n:'목성',sym:'♃',g:24.79,rho:0.16, col:'#FFA726',gnd:'#7B5E3C',ha:true},
+  {id:'saturn', n:'토성',sym:'♄',g:10.44,rho:0.10, col:'#FFF176',gnd:'#A1887F',ha:true},
+  {id:'uranus', n:'천왕성',sym:'⛢',g:8.87,rho:0.09,col:'#80DEEA',gnd:'#00838F',ha:true},
+  {id:'neptune',n:'해왕성',sym:'♆',g:11.15,rho:0.12,col:'#7986CB',gnd:'#283593',ha:true},
+];
+let SP=PL[3], simRun=false, phys=null, raf=null, qrInst=null;
+
+// ===== TAB SWITCH =====
+function sw(t){
+  ['sim','ard','qr'].forEach(x=>{
+    document.getElementById('pane-'+x).style.display=x===t?'block':'none';
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+  });
+  if(t==='qr') initQR();
+}
+
+// ===== PLANET GRID =====
+function buildPG(){
+  const g=document.getElementById('pg');
+  g.innerHTML=PL.map((p,i)=>`
+    <button class="pb" id="pb${i}" onclick="selP(${i})">
+      <span class="sym">${p.sym}</span>${p.n}<br>
+      <span class="gv">${p.g}m/s²</span>
+    </button>`).join('');
+  hiliteP(3);
+}
+function selP(i){SP=PL[i];hiliteP(i);}
+function hiliteP(i){
+  PL.forEach((_,j)=>{
+    const b=document.getElementById('pb'+j);
+    b.style.borderColor=j===i?PL[j].col:'#252538';
+    b.style.background=j===i?PL[j].col+'22':'#16162a';
+    b.style.color=j===i?PL[j].col:'#8888A8';
+  });
+  document.getElementById('pc').innerHTML=`
+    <div style="width:28px;height:28px;border-radius:50%;background:${SP.col};flex-shrink:0"></div>
+    <div>
+      <div style="font-size:13px;font-weight:500">${SP.n} (${SP.id})</div>
+      <div style="font-size:10px;color:#8888A8">중력 ${SP.g} m/s² | 대기 ${SP.rho} kg/m³ | ${SP.ha?'대기 있음':'대기 없음'}</div>
+    </div>`;
+  document.getElementById('aw').style.display=SP.ha?'none':'inline';
+}
+
+// ===== SLIDERS =====
+function gv(id){return parseFloat(document.getElementById(id).value);}
+function sv(id,outId,fmt){
+  const el=document.getElementById(id),out=document.getElementById(outId);
+  if(!el||!out)return;
+  const u=()=>{out.textContent=typeof fmt==='function'?fmt(parseFloat(el.value)):el.value+fmt;};
+  el.addEventListener('input',u);u();
+}
+function initSliders(){
+  sv('pR','pR-v',v=>v.toFixed(1)+' m');
+  sv('ms','ms-v',v=>v+' kg');
+  sv('a0','a0-v',v=>v+' m');
+  sv('lw','lw-v',v=>v+' cm');
+  sv('ll','ll-v',v=>v+' cm');
+  sv('ws','ws-v',v=>v+' m/s');
+  sv('wd','wd-v',v=>{
+    const dirs=['동→','북동↗','북↑','북서↖','서←','남서↙','남↓','남동↘'];
+    document.getElementById('wdd').textContent='('+dirs[Math.round(v/45)%8]+')';
+    return v+'°';
+  });
+  sv('th','th-v',v=>v+' cm');
+  sv('ag','ag-v',v=>v+'°');
+  sv('dt','dt-v',v=>{document.getElementById('dt-s').textContent=(v/1000).toFixed(1);return v+' ms';});
+  sv('ti','ti-v',v=>v+'');
+  sv('ck','ck-v',v=>v+' ms');
+}
+
+// ===== SIMULATION =====
+function startSim(){
+  if(simRun)return;
+  if(raf)cancelAnimationFrame(raf);
+  const pR=gv('pR'),mass=gv('ms'),alt0=gv('a0'),ws=gv('ws'),wd=gv('wd'),lw=gv('lw');
+  phys={h:alt0,v:0,x:0,t:0,maxH:alt0,landed:false,
+    g:SP.g,rho:SP.rho,Ac:Math.PI*pR*pR,Ab:(lw/100)*(lw/100)*.45,
+    ws,wd,pR,mass,col:SP.col,gnd:SP.gnd,ha:SP.ha,pname:SP.n};
+  document.getElementById('ra').innerHTML='';
+  simRun=true;
+  const btn=document.getElementById('sb');
+  btn.textContent='▶ 시뮬레이션 중...';btn.style.opacity='.5';
+  const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+  const DT=0.04,SPF=5;
+  function frame(){
+    const s=phys;if(!s||s.landed){simRun=false;return;}
+    for(let i=0;i<SPF;i++){
+      let drag=0;
+      if(s.rho>0)drag=0.5*s.rho*s.v*s.v*(1.5*s.Ac+0.5*s.Ab);
+      const a=(s.g*s.mass-drag)/s.mass;
+      s.v=Math.max(0,s.v+a*DT);s.h-=s.v*DT;s.t+=DT;
+      const wr=(s.wd*Math.PI)/180;s.x+=s.ws*Math.cos(wr)*DT;
+      if(s.h<=0){
+        s.h=0;s.landed=true;
+        showRes(s.v,s.t,Math.abs(s.x));
+        draw(ctx,cv.width,cv.height,s);
+        simRun=false;
+        btn.textContent='▶ 시뮬레이션 시작';btn.style.opacity='1';
+        return;
+      }
+    }
+    draw(ctx,cv.width,cv.height,s);
+    raf=requestAnimationFrame(frame);
+  }
+  raf=requestAnimationFrame(frame);
+}
+
+function draw(ctx,W,H,s){
+  ctx.fillStyle='#090914';ctx.fillRect(0,0,W,H);
+  // stars
+  [[20,15],[55,8],[90,25],[130,10],[170,30],[210,18],[260,7],[300,22],[345,35],
+   [15,55],[100,48],[160,60],[230,42],[320,58],[60,80],[190,75],[280,85],
+   [400,20],[380,55],[370,90]].forEach(([x,y])=>{
+    ctx.fillStyle='#ffffff55';ctx.beginPath();ctx.arc(x,y,.8,0,6.28);ctx.fill();});
+  const gY=H-36,SC=(gY-60)/s.maxH;
+  // atmosphere
+  if(s.ha){
+    const a=Math.min(.18,s.rho/80),gr=ctx.createLinearGradient(0,0,0,gY);
+    gr.addColorStop(0,'rgba(100,150,255,0)');
+    gr.addColorStop(.7,`rgba(100,140,255,${a*.3})`);
+    gr.addColorStop(1,`rgba(100,140,255,${a})`);
+    ctx.fillStyle=gr;ctx.fillRect(0,0,W,gY);
+  }
+  // ground
+  ctx.fillStyle=s.gnd;ctx.fillRect(0,gY,W,H-gY);
+  ctx.fillStyle='rgba(0,0,0,.25)';
+  [50,130,220,310,400].forEach(x=>{ctx.beginPath();ctx.ellipse(x,gY+5,9,3,0,0,6.28);ctx.fill();});
+  // lander position
+  const lx=W/2+s.x*SC*.25,ly=gY-s.h*SC,lW=22,lH=14;
+  // parachute
+  if(s.pR>0&&s.ha&&s.h>.5){
+    const cr=Math.min(52,s.pR*12);
+    ctx.beginPath();ctx.arc(lx,ly-lH-cr*.5,cr*.5,Math.PI,0);
+    ctx.strokeStyle='#FFE082';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.strokeStyle='#FFE08888';ctx.lineWidth=.8;
+    ctx.beginPath();
+    ctx.moveTo(lx-cr*.5,ly-lH-cr*.08);ctx.lineTo(lx-lW/2,ly-lH);
+    ctx.moveTo(lx,ly-lH-cr*.5);ctx.lineTo(lx,ly-lH);
+    ctx.moveTo(lx+cr*.5,ly-lH-cr*.08);ctx.lineTo(lx+lW/2,ly-lH);
+    ctx.stroke();
+  }
+  // exhaust
+  if(s.v>0.3&&s.h>.5){
+    const eL=Math.min(20,s.v*2.2);
+    const eg=ctx.createLinearGradient(lx,ly+lH,lx,ly+lH+eL);
+    eg.addColorStop(0,'rgba(255,140,0,.85)');eg.addColorStop(1,'rgba(255,60,0,0)');
+    ctx.fillStyle=eg;ctx.beginPath();ctx.ellipse(lx,ly+lH+eL/2,4,eL/2,0,0,6.28);ctx.fill();
+  }
+  // body
+  ctx.fillStyle='#D4D4D4';ctx.fillRect(lx-lW/2,ly-lH,lW,lH);
+  ctx.strokeStyle='#888';ctx.lineWidth=.8;ctx.strokeRect(lx-lW/2,ly-lH,lW,lH);
+  ctx.fillStyle='#1565C0';
+  ctx.fillRect(lx-lW-5,ly-lH+4,7,6);ctx.fillRect(lx+lW-2,ly-lH+4,7,6);
+  // legs
+  const lf=s.h<20?Math.min(1,1-s.h/20):0,sp=lf*13;
+  ctx.strokeStyle='#A0A0A0';ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(lx-lW/2,ly);ctx.lineTo(lx-lW/2-sp,ly+7+sp*.4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(lx+lW/2,ly);ctx.lineTo(lx+lW/2+sp,ly+7+sp*.4);ctx.stroke();
+  if(lf>.5){
+    ctx.fillStyle='#999';
+    ctx.beginPath();ctx.ellipse(lx-lW/2-sp,ly+7+sp*.4,4,1.5,0,0,6.28);ctx.fill();
+    ctx.beginPath();ctx.ellipse(lx+lW/2+sp,ly+7+sp*.4,4,1.5,0,0,6.28);ctx.fill();
+  }
+  // wind arrow
+  if(s.ws>0){
+    const wr=(s.wd*Math.PI)/180,wL=Math.min(24,s.ws*2.5);
+    ctx.beginPath();ctx.moveTo(22,22);ctx.lineTo(22+Math.cos(wr)*wL,22+Math.sin(wr)*wL);
+    ctx.strokeStyle='#80DEEA';ctx.lineWidth=1.5;ctx.stroke();
+    const ax=22+Math.cos(wr)*wL,ay=22+Math.sin(wr)*wL;
+    ctx.beginPath();
+    ctx.moveTo(ax,ay);ctx.lineTo(ax+Math.cos(wr-2.6)*(wL*.35),ay+Math.sin(wr-2.6)*(wL*.35));
+    ctx.moveTo(ax,ay);ctx.lineTo(ax+Math.cos(wr+2.6)*(wL*.35),ay+Math.sin(wr+2.6)*(wL*.35));
+    ctx.strokeStyle='#80DEEA';ctx.stroke();
+    ctx.fillStyle='#80DEEA';ctx.font='8px monospace';
+    ctx.fillText(s.ws.toFixed(1)+'m/s',8,H-50);
+  }
+  // HUD
+  ctx.fillStyle='#00E676';ctx.font='bold 11px monospace';ctx.textAlign='right';
+  ctx.fillText('H:'+Math.max(0,s.h).toFixed(1)+'m',W-6,18);
+  ctx.fillText('V:'+s.v.toFixed(2)+'m/s',W-6,32);
+  ctx.fillText('T+'+s.t.toFixed(1)+'s',W-6,46);
+  ctx.textAlign='left';
+  ctx.fillStyle=s.col;ctx.font='9px monospace';ctx.fillText(s.pname,6,H-6);
+  if(s.h<25){
+    ctx.fillStyle=s.v<3?'#00E676':'#FF5722';
+    ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText(s.v<3?'[ 착륙 안전 ]':'[ 충돌 위험! ]',W/2,gY-8);
+    ctx.textAlign='left';
+  }
+  if(s.h<=0){
+    ctx.fillStyle=s.v<3?'rgba(0,230,118,.12)':'rgba(255,87,34,.12)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=s.v<3?'#00E676':'#FF5722';
+    ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText(s.v<3?'★ 착륙 성공! ★':'✗ 충돌!',W/2,H/2);
+    ctx.textAlign='left';
+  }
+}
+
+function showRes(vel,time,drift){
+  const ok=vel<3;
+  document.getElementById('ra').innerHTML=`
+    <div class="rc" style="border-color:${ok?'#00C853':'#FF5722'};background:${ok?'rgba(0,200,83,.06)':'rgba(255,87,34,.06)'}">
+      <div style="font-size:13px;font-weight:500;color:${ok?'#00C853':'#FF5722'};margin-bottom:8px">
+        ${ok?'✓ 착륙 성공! 안전 착지':'✗ 착륙 실패 — 충돌 속도 초과'}
+      </div>
+      <div class="r2">
+        <div class="mc">
+          <div class="v" style="color:${vel<3?'#00C853':vel<6?'#FF9800':'#EF5350'}">${parseFloat(vel).toFixed(2)}</div>
+          <div class="l">충돌 속도 (m/s)<br><span style="font-size:9px">안전 기준 &lt; 3 m/s</span></div>
+        </div>
+        <div class="mc">
+          <div class="v">${parseFloat(time).toFixed(1)}</div>
+          <div class="l">비행 시간 (s)</div>
+        </div>
+      </div>
+      <div class="mc" style="margin-top:8px">
+        <div class="v">${parseFloat(drift).toFixed(1)} m</div>
+        <div class="l">횡방향 표류 (풍향 영향)</div>
+      </div>
+      ${!SP.ha?'<div style="font-size:10px;color:#888;margin-top:8px">⚠ 대기 없음 — 낙하산 무효, 로켓 역추진만 가능</div>':''}
+      ${SP.rho>10?'<div style="font-size:10px;color:#888;margin-top:8px">⚠ 초고밀도 대기(금성) — 낙하산 효과 극대화</div>':''}
+    </div>`;
+}
+
+// init empty canvas
+function drawEmpty(){
+  const cv=document.getElementById('cv');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.fillStyle='#090914';ctx.fillRect(0,0,W,H);
+  [[20,15],[55,8],[90,25],[130,10],[170,30],[210,18],[260,7],[300,22],[340,35]].forEach(([x,y])=>{
+    ctx.fillStyle='#ffffff44';ctx.beginPath();ctx.arc(x,y,.8,0,6.28);ctx.fill();});
+  ctx.fillStyle=SP.gnd;ctx.fillRect(0,H-36,W,36);
+  ctx.fillStyle='#444';ctx.font='11px monospace';ctx.textAlign='center';
+  ctx.fillText('▶ 시뮬레이션 시작 버튼을 누르세요',W/2,(H-36)/2);
+  ctx.textAlign='left';
+}
+
+// ===== ARDUINO CODE =====
+function gc(){
+  const th=document.getElementById('th').value;
+  const ag=document.getElementById('ag').value;
+  const dt=document.getElementById('dt').value;
+  const ti=document.getElementById('ti').value;
+  const ck=document.getElementById('ck').value;
+  return `#include <Servo.h>
+#include <Wire.h>
+
+// ================================================
+//  달착륙선 GNC 자율착륙 시스템 v1.0
+//  Junior Lunar Lander - Arduino Uno
+//  핀: HC-SR04(9,10) | 서보(3,5,6,11)
+//       MPU6050(A4,A5) | LED(12,13)
+// ================================================
+
+#define TRIG_PIN    9
+#define ECHO_PIN    10
+#define LEG1_PIN    3    // 앞-왼쪽
+#define LEG2_PIN    5    // 앞-오른쪽
+#define LEG3_PIN    6    // 뒤-왼쪽
+#define LEG4_PIN    11   // 뒤-오른쪽
+#define STATUS_LED  13   // 초록 (정상)
+#define WARN_LED    12   // 빨강 (경고)
+
+// ===== 여기를 수정하세요! =====
+const int LANDING_THRESHOLD = ${th};    // cm
+const int LEG_DEPLOY_ANGLE  = ${ag};   // 도(deg)
+const int LEG_DEPLOY_TIME   = ${dt}; // ms
+const int TILT_THRESHOLD    = ${ti};  // IMU raw
+const int CHECK_INTERVAL    = ${ck};   // ms
+// ==============================
+
+const int MPU = 0x68;
+Servo leg1, leg2, leg3, leg4;
+bool legsDeployed = false;
+int16_t AcX, AcY, AcZ;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(STATUS_LED, OUTPUT);
+  pinMode(WARN_LED, OUTPUT);
+  leg1.attach(LEG1_PIN); leg2.attach(LEG2_PIN);
+  leg3.attach(LEG3_PIN); leg4.attach(LEG4_PIN);
+  foldLegs();
+  Wire.begin();
+  Wire.beginTransmission(MPU);
+  Wire.write(0x6B); Wire.write(0);
+  Wire.endTransmission(true);
+  Serial.println("=== GNC 자율착륙 시스템 시작 ===");
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(STATUS_LED, HIGH); delay(200);
+    digitalWrite(STATUS_LED, LOW);  delay(200);
+  }
+}
+
+// [N] 초음파 고도 측정
+int getAltitude() {
+  digitalWrite(TRIG_PIN, LOW);  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long dur = pulseIn(ECHO_PIN, HIGH, 30000);
+  if (dur == 0) return 999;
+  return (int)(dur * 0.034 / 2);
+}
+
+// [N] IMU 기울기 확인
+bool isTilted() {
+  Wire.beginTransmission(MPU); Wire.write(0x3B);
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU, 6, true);
+  AcX = Wire.read()<<8|Wire.read();
+  AcY = Wire.read()<<8|Wire.read();
+  AcZ = Wire.read()<<8|Wire.read();
+  return (abs(AcX) > TILT_THRESHOLD || abs(AcY) > TILT_THRESHOLD);
+}
+
+// [C] 착륙 다리 서서히 전개
+void deployLegs() {
+  if (legsDeployed) return;
+  Serial.println("[C] 착륙 다리 전개 시작...");
+  int steps = 20;
+  int stepDelay = LEG_DEPLOY_TIME / steps;
+  for (int i = 0; i <= steps; i++) {
+    int angle = (i * LEG_DEPLOY_ANGLE) / steps;
+    leg1.write(angle);       leg2.write(180 - angle);
+    leg3.write(angle);       leg4.write(180 - angle);
+    delay(stepDelay);
+  }
+  legsDeployed = true;
+  Serial.println("[C] 착륙 다리 전개 완료!");
+}
+
+void foldLegs() {
+  leg1.write(0); leg2.write(180);
+  leg3.write(0); leg4.write(180);
+  legsDeployed = false;
+}
+
+void loop() {
+  // [N] Navigation
+  int alt = getAltitude();
+  bool tilted = isTilted();
+  Serial.print("[N] 고도="); Serial.print(alt);
+  Serial.print("cm | 자세="); Serial.print(tilted?"경고":"정상");
+  Serial.print(" | AcX="); Serial.print(AcX);
+  Serial.print(" AcY="); Serial.println(AcY);
+
+  // [C] Control
+  digitalWrite(WARN_LED, tilted ? HIGH : LOW);
+  if (tilted) Serial.println("[C] !! 자세 교정 필요 !!");
+
+  // [G] Guidance
+  if (alt <= LANDING_THRESHOLD) {
+    deployLegs();
+    if (alt <= 5 && !tilted) {
+      Serial.println("[G] *** 착륙 성공! ***");
+      digitalWrite(STATUS_LED, HIGH);
+      digitalWrite(WARN_LED, LOW);
+    } else if (alt <= 5 && tilted) {
+      Serial.println("[G] !! 경고: 기울어진 착륙 !!");
+      for (int i=0;i<5;i++){
+        digitalWrite(WARN_LED,HIGH); delay(100);
+        digitalWrite(WARN_LED,LOW);  delay(100);
+      }
+    } else {
+      Serial.print("[G] 착륙 준비... 남은: ");
+      Serial.print(alt - 5); Serial.println("cm");
+      for(int i=0;i<2;i++){
+        digitalWrite(STATUS_LED,HIGH);delay(80);
+        digitalWrite(STATUS_LED,LOW); delay(80);
+      }
+    }
+  } else {
+    digitalWrite(STATUS_LED, LOW);
+    Serial.print("[G] 하강중... 다리전개까지: ");
+    Serial.print(alt - LANDING_THRESHOLD);
+    Serial.println("cm");
+  }
+  delay(CHECK_INTERVAL);
+}`;
+}
+
+function uc(){
+  ['th','ag','dt','ti','ck'].forEach(id=>{
+    const el=document.getElementById(id);
+    const v=el.value;
+    const outId=id+'-v';
+    const out=document.getElementById(outId);
+    if(out){
+      if(id==='dt'){
+        out.textContent=v+' ms';
+        document.getElementById('dt-s').textContent=(v/1000).toFixed(1);
+      } else {
+        out.textContent=v+(id==='ag'?'°':id==='th'?' cm':id==='ck'?' ms':'');
+      }
+    }
+  });
+  document.getElementById('cblk').textContent=gc();
+}
+
+function cpCode(){
+  const code=gc();
+  const btn=document.getElementById('cpb');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(()=>{
+      btn.textContent='✓ 복사 완료!';btn.style.color='#00C853';btn.style.borderColor='#00C853';
+      setTimeout(()=>{btn.textContent='📋 코드 복사 (클립보드)';btn.style.color='#F57C00';btn.style.borderColor='#F57C00';},2500);
+    });
+  } else {
+    const ta=document.createElement('textarea');ta.value=code;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='✓ 복사 완료!';setTimeout(()=>{btn.textContent='📋 코드 복사 (클립보드)';},2500);
+  }
+}
+
+// ===== QR CODE =====
+function initQR(){
+  const url=window.location.href;
+  document.getElementById('qurl').textContent=url;
+  makeQR(url);
+}
+function makeQR(url){
+  const el=document.getElementById('qrc');
+  el.innerHTML='';
+  try{
+    qrInst=new QRCode(el,{text:url,width:200,height:200,colorDark:'#000',colorLight:'#fff'});
+  }catch(e){el.textContent='QR 생성 실패: '+e.message;}
+}
+function genQR(){
+  const u=document.getElementById('curl').value.trim();
+  if(!u){alert('URL을 입력하세요');return;}
+  document.getElementById('qurl').textContent=u;
+  makeQR(u);
+}
+
+// ===== INIT =====
+buildPG();
+initSliders();
+uc();
+drawEmpty();
+</script>
+</body>
+</html>
