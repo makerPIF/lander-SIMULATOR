@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>낙하산 크기 계산기 — 호박공장 메이커스페이스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e1117;
+  --bg2: #161b25;
+  --bg3: #1e2535;
+  --bg4: #252d40;
+  --border: #2a3450;
+  --border2: #3a4a6a;
+  --text: #e8edf8;
+  --text2: #8a9bbf;
+  --text3: #566080;
+  --accent: #4a90e2;
+  --accent2: #2563b0;
+  --accent-glow: rgba(74,144,226,0.15);
+  --green: #3ecf8e;
+  --green-bg: rgba(62,207,142,0.1);
+  --amber: #f5a623;
+  --amber-bg: rgba(245,166,35,0.1);
+  --red: #e05c5c;
+  --red-bg: rgba(224,92,92,0.1);
+  --purple: #a78bfa;
+  --purple-bg: rgba(167,139,250,0.1);
+  --r: 8px;
+  --r2: 12px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans KR', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.app-header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+}
+.app-header .logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--accent2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.app-header h1 { font-size: 15px; font-weight: 500; color: var(--text); }
+.app-header p { font-size: 12px; color: var(--text2); margin-left: auto; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: calc(100vh - 57px);
+}
+
+.sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  overflow-y: auto;
+  height: calc(100vh - 57px);
+  position: sticky; top: 57px;
+}
+
+.main {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* ── Section ── */
+.section { margin-bottom: 24px; }
+.section-title {
+  font-size: 10px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Environment tabs ── */
+.env-tabs {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
+}
+.env-tab {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 8px 6px;
+  cursor: pointer; text-align: center;
+  transition: all .15s; color: var(--text);
+  font-family: var(--sans);
+}
+.env-tab:hover { background: var(--bg4); border-color: var(--border2); }
+.env-tab.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.env-tab .e-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+.env-tab .e-name { font-size: 11px; font-weight: 500; display: block; }
+.env-tab .e-sub { font-size: 10px; color: var(--text3); display: block; }
+.env-tab.active .e-sub { color: var(--accent); opacity: .7; }
+
+/* ── Type tabs ── */
+.type-tabs {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
+}
+.type-tab {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 8px 6px;
+  cursor: pointer; text-align: center;
+  transition: all .15s; color: var(--text2);
+  font-family: var(--sans);
+}
+.type-tab:hover { background: var(--bg4); border-color: var(--border2); }
+.type-tab.active {
+  background: var(--purple-bg);
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.type-tab .t-name { font-size: 11px; font-weight: 500; display: block; margin-bottom: 2px; }
+.type-tab .t-cd { font-size: 13px; font-weight: 600; display: block; color: var(--text); }
+.type-tab.active .t-cd { color: var(--purple); }
+
+/* ── Form Fields ── */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-full { grid-column: 1/-1; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: var(--text2); font-weight: 500; }
+.field input, .field select {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 7px 10px;
+  color: var(--text); font-family: var(--sans); font-size: 13px;
+  width: 100%; transition: border-color .15s;
+}
+.field input:focus, .field select:focus {
+  outline: none; border-color: var(--accent);
+  background: var(--bg4);
+}
+.field select option { background: var(--bg3); }
+.field .hint { font-size: 10px; color: var(--text3); }
+.field .range-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.field input[type=range] {
+  flex: 1; padding: 0; height: 4px; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background: var(--border2); border: none;
+  border-radius: 2px;
+}
+.field input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+}
+.field .range-val {
+  font-family: var(--mono); font-size: 12px; color: var(--accent);
+  min-width: 38px; text-align: right;
+}
+
+/* ── Env info bar ── */
+.env-bar {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px;
+  margin-top: 10px;
+}
+.env-bar-item { font-size: 11px; color: var(--text3); }
+.env-bar-item span { color: var(--text2); font-family: var(--mono); }
+
+/* ── Calc button ── */
+.calc-btn {
+  width: 100%; padding: 12px;
+  background: var(--accent); border: none;
+  border-radius: var(--r); color: #fff;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  font-family: var(--sans); letter-spacing: .02em;
+  margin-top: 4px;
+}
+.calc-btn:hover { background: #5aa0f0; }
+.calc-btn:active { transform: scale(.98); }
+
+/* ── Results ── */
+.result-hero {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 20px;
+}
+.hero-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 16px 20px;
+  text-align: center;
+}
+.hero-card.primary { border-color: var(--accent); background: var(--accent-glow); }
+.hero-card .h-label { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+.hero-card .h-val {
+  font-size: 32px; font-weight: 600; font-family: var(--mono);
+  color: var(--text); line-height: 1;
+}
+.hero-card.primary .h-val { color: var(--accent); }
+.hero-card .h-unit { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.hero-card .h-sub { font-size: 12px; color: var(--accent); margin-top: 6px; font-family: var(--mono); }
+
+.metrics-row {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 8px; margin-bottom: 20px;
+}
+.metric {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px; text-align: center;
+}
+.metric .m-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; }
+.metric .m-val { font-size: 15px; font-weight: 500; font-family: var(--mono); color: var(--text); }
+
+/* ── Stability section ── */
+.stab-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 20px;
+}
+.stab-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 14px 16px;
+}
+.stab-card h3 { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 10px; }
+.stab-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.stab-row:last-child { border-bottom: none; }
+.stab-row .s-key { color: var(--text3); }
+.stab-row .s-val { font-family: var(--mono); color: var(--text); }
+.stab-row .s-val.ok { color: var(--green); }
+.stab-row .s-val.warn { color: var(--amber); }
+.stab-row .s-val.bad { color: var(--red); }
+
+/* ── Bar chart ── */
+.chart-section {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 16px; margin-bottom: 16px;
+}
+.chart-section h3 { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.bar-name { font-size: 11px; color: var(--text3); width: 90px; text-align: right; flex-shrink: 0; }
+.bar-track {
+  flex: 1; height: 12px; background: var(--bg3);
+  border-radius: 3px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+.bar-val { font-size: 10px; color: var(--text3); width: 56px; flex-shrink: 0; font-family: var(--mono); }
+
+/* ── Material table ── */
+.mat-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+  margin-bottom: 16px;
+}
+.mat-table th {
+  background: var(--bg3); color: var(--text3);
+  padding: 8px 12px; text-align: left; font-weight: 500;
+  border-bottom: 1px solid var(--border); font-size: 10px;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.mat-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.mat-table tr:last-child td { border-bottom: none; }
+.mat-table tr:hover td { background: var(--bg3); }
+.mat-table .hl { color: var(--green); font-family: var(--mono); font-weight: 500; }
+
+/* ── Note box ── */
+.note {
+  background: var(--bg3); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 10px 14px; margin-bottom: 16px;
+  font-size: 12px; color: var(--text2); line-height: 1.7;
+}
+.note strong { color: var(--text); }
+
+/* ── Tag ── */
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 500;
+}
+.tag-blue { background: var(--accent-glow); color: var(--accent); }
+.tag-green { background: var(--green-bg); color: var(--green); }
+.tag-amber { background: var(--amber-bg); color: var(--amber); }
+.tag-red { background: var(--red-bg); color: var(--red); }
+
+/* ── Placeholder ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 20px;
+  color: var(--text3); text-align: center;
+}
+.empty-state .e-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 13px; }
+
+/* ── Formula box ── */
+.formula {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 14px;
+  font-family: var(--mono); font-size: 12px; color: var(--accent);
+  margin: 8px 0; letter-spacing: .03em;
+}
+
+/* ── Alert ── */
+.alert {
+  padding: 10px 14px; border-radius: var(--r);
+  font-size: 12px; margin-bottom: 12px;
+}
+.alert-warn { background: var(--amber-bg); border: 1px solid rgba(245,166,35,.3); color: var(--amber); }
+.alert-error { background: var(--red-bg); border: 1px solid rgba(224,92,92,.3); color: var(--red); }
+.alert-ok { background: var(--green-bg); border: 1px solid rgba(62,207,142,.3); color: var(--green); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  .result-hero { grid-template-columns: 1fr; }
+  .metrics-row { grid-template-columns: repeat(2,1fr); }
+  .stab-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo">🪂</div>
+  <h1>낙하산 크기 계산기</h1>
+  <p>호박공장 메이커스페이스 · SRC 프로그램</p>
+</header>
+
+<div class="layout">
+<!-- ════ SIDEBAR ════ -->
+<aside class="sidebar">
+
+  <!-- 환경 -->
+  <div class="section">
+    <div class="section-title">① 환경 선택</div>
+    <div class="env-tabs" id="envTabs"></div>
+    <div class="env-bar" id="envBar"></div>
+  </div>
+
+  <!-- 낙하산 형태 -->
+  <div class="section">
+    <div class="section-title">② 낙하산 형태 (항력계수 Cd)</div>
+    <div class="type-tabs" id="typeTabs"></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text3)" id="typeNote"></div>
+  </div>
+
+  <!-- 기본 낙하 조건 -->
+  <div class="section">
+    <div class="section-title">③ 기본 낙하 조건</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>페이로드 질량 (kg)</label>
+        <input type="number" id="mass" value="0.5" min="0.001" step="0.1">
+      </div>
+      <div class="field">
+        <label>목표 착지 속도 (m/s)</label>
+        <input type="number" id="vTarget" value="5" min="0.5" step="0.5">
+        <div class="hint">↓ 작을수록 낙하산이 커짐</div>
+      </div>
+      <div class="field">
+        <label>전개 고도 (m)</label>
+        <input type="number" id="altitude" value="100" min="0" step="10">
+        <div class="hint">지표 기준 — 밀도 보정에 사용</div>
+      </div>
+      <div class="field">
+        <label>전개 시 속도 (m/s)</label>
+        <input type="number" id="vDeploy" value="30" min="1" step="1">
+        <div class="hint">개산 충격력 계산에 사용</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 안정성 설계 변수 -->
+  <div class="section">
+    <div class="section-title">④ 안정성 설계 변수</div>
+    <div class="field-grid">
+      <div class="field field-full">
+        <label>안전계수 (SF)</label>
+        <div class="range-row">
+          <input type="range" id="sf" min="1.0" max="3.0" step="0.1" value="1.3"
+            oninput="document.getElementById('sfVal').textContent=parseFloat(this.value).toFixed(1)">
+          <span class="range-val" id="sfVal">1.3</span>
+        </div>
+        <div class="hint">일반 탑재체 1.3 · 정밀 장비 1.5 · 유인 2.0+</div>
+      </div>
+
+      <div class="field field-full">
+        <label>개산 충격 계수 (Cx)</label>
+        <div class="range-row">
+          <input type="range" id="cx" min="1.0" max="2.5" step="0.1" value="1.8"
+            oninput="document.getElementById('cxVal').textContent=parseFloat(this.value).toFixed(1)">
+          <span class="range-val" id="cxVal">1.8</span>
+        </div>
+        <div class="hint">자유전개 1.5~2.5 · 슬라이더 1.1~1.3 · 리핑 1.0~1.2</div>
+      </div>
+
+      <div class="field field-full">
+        <label>벤트 홀 비율 (%)</label>
+        <div class="range-row">
+          <input type="range" id="ventPct" min="0" max="25" step="1" value="10"
+            oninput="document.getElementById('ventVal').textContent=this.value+'%'">
+          <span class="range-val" id="ventVal">10%</span>
+        </div>
+        <div class="hint">0=없음 · 5~10=안정 · 15~20=매우안정(Cd 감소)</div>
+      </div>
+
+      <div class="field">
+        <label>현수선 길이 비율 (L/D)</label>
+        <div class="range-row">
+          <input type="range" id="ldRatio" min="0.7" max="2.0" step="0.1" value="1.2"
+            oninput="document.getElementById('ldVal').textContent=parseFloat(this.value).toFixed(1)">
+          <span class="range-val" id="ldVal">1.2</span>
+        </div>
+        <div class="hint">1.0~1.5 권장</div>
+      </div>
+
+      <div class="field">
+        <label>현수선 수</label>
+        <div class="range-row">
+          <input type="range" id="nLines" min="4" max="32" step="2" value="12"
+            oninput="document.getElementById('nLinesVal').textContent=this.value">
+          <span class="range-val" id="nLinesVal">12</span>
+        </div>
+        <div class="hint">가닥 (짝수 권장)</div>
+      </div>
+
+      <div class="field">
+        <label>바람 속도 (m/s)</label>
+        <input type="number" id="wind" value="3" min="0" step="0.5">
+        <div class="hint">드리프트 거리 계산용</div>
+      </div>
+
+      <div class="field">
+        <label>허용 진동각 (°)</label>
+        <div class="range-row">
+          <input type="range" id="swingAngle" min="5" max="45" step="5" value="20"
+            oninput="document.getElementById('swingVal').textContent=this.value+'°'">
+          <span class="range-val" id="swingVal">20°</span>
+        </div>
+        <div class="hint">캐노피 진동 마진 — 안정성 평가</div>
+      </div>
+
+      <div class="field">
+        <label>현수선 재료</label>
+        <select id="lineMat">
+          <option value="550">550 파라코드 (250 kg)</option>
+          <option value="100" selected>폴리에스터 코드 (100 kg)</option>
+          <option value="50">낚시줄/재봉사 (50 kg)</option>
+          <option value="450">케블라 라인 (450 kg)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>캐노피 원단</label>
+        <select id="fabric">
+          <option value="40">나일론 립스탑 30D (40 g/m²)</option>
+          <option value="80" selected>나일론 립스탑 70D (80 g/m²)</option>
+          <option value="100">폴리에스터 직물 (100 g/m²)</option>
+          <option value="55">파라셔트 나일론 (55 g/m²)</option>
+          <option value="20">마일라 Mylar (20 g/m²)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">🧮 낙하산 크기 계산하기</button>
+
+</aside>
+
+<!-- ════ MAIN ════ -->
+<main class="main" id="mainArea">
+  <div class="empty-state">
+    <div class="e-icon">🪂</div>
+    <p>왼쪽에서 환경과 조건을 설정한 뒤<br><strong>계산 버튼</strong>을 누르세요</p>
+    <br>
+    <div class="formula">A = (2 · m · g) / (ρ · Cd · v²) × SF</div>
+    <p style="font-size:11px;margin-top:8px">항력 = 중력 조건에서 필요 면적 계산</p>
+  </div>
+</main>
+</div>
+
+<script>
+const ENVS = [
+  {id:'earth',    name:'지구',  sub:'해수면',  icon:'🌍', g:9.81, rho0:1.225, H:8500},
+  {id:'earth_10', name:'지구',  sub:'고도 10 km', icon:'✈️', g:9.76, rho0:0.414, H:8500},
+  {id:'earth_30', name:'지구',  sub:'고도 30 km', icon:'🏔️', g:9.70, rho0:0.018, H:8500},
+  {id:'mars',     name:'화성',  sub:'표면',    icon:'🔴', g:3.72, rho0:0.020, H:11000},
+  {id:'venus',    name:'금성',  sub:'표면',    icon:'🟡', g:8.87, rho0:65.0,  H:15900},
+  {id:'titan',    name:'타이탄',sub:'표면',    icon:'🟠', g:1.35, rho0:5.3,   H:18000},
+  {id:'moon',     name:'달',    sub:'표면',    icon:'🌕', g:1.62, rho0:0,     H:0},
+];
+const TYPES = [
+  {id:'flat',    name:'평면형',   cd:1.05, note:'단순 원형 평면. Cd 최고, 제작 쉬움. 초보자용.'},
+  {id:'cross',   name:'십자형',   cd:1.00, note:'횡방향 드리프트 억제. 정밀 착지에 유리.'},
+  {id:'annular', name:'환형',     cd:0.85, note:'중앙 구멍으로 진동 감소, 안정성 향상.'},
+  {id:'hemi',    name:'반구형',   cd:0.75, note:'가장 일반적인 형태. 균형 잡힌 성능.'},
+  {id:'x4f',     name:'X-form',  cd:0.90, note:'사각 변형. 군사·탐사 임무용.'},
+  {id:'ribbon',  name:'리본형',   cd:0.55, note:'고속 전개 특화. 드로그 낙하산에 사용.'},
+];
+
+let selEnv = ENVS[0];
+let selType = TYPES[3];
+
+function buildEnvTabs(){
+  document.getElementById('envTabs').innerHTML = ENVS.map(e=>
+    `<button class="env-tab${e.id===selEnv.id?' active':''}" onclick="selEnv=ENVS.find(x=>x.id==='${e.id}');buildEnvTabs();updateEnvBar()">
+      <span class="e-icon">${e.icon}</span>
+      <span class="e-name">${e.name}</span>
+      <span class="e-sub">${e.sub}</span>
+    </button>`).join('');
+}
+function buildTypeTabs(){
+  document.getElementById('typeTabs').innerHTML = TYPES.map(t=>
+    `<button class="type-tab${t.id===selType.id?' active':''}" onclick="selType=TYPES.find(x=>x.id==='${t.id}');buildTypeTabs();document.getElementById('typeNote').textContent=selType.note">
+      <span class="t-name">${t.name}</span>
+      <span class="t-cd">Cd ${t.cd}</span>
+    </button>`).join('');
+  document.getElementById('typeNote').textContent = selType.note;
+}
+function updateEnvBar(){
+  const e = selEnv;
+  const alt = parseFloat(document.getElementById('altitude').value)||0;
+  const rho = e.rho0 > 0 ? e.rho0 * Math.exp(-alt/e.H) : 0;
+  document.getElementById('envBar').innerHTML = `
+    <div class="env-bar-item">중력 <span>${e.g} m/s²</span></div>
+    <div class="env-bar-item">기준밀도 <span>${e.rho0} kg/m³</span></div>
+    <div class="env-bar-item">고도${alt}m밀도 <span>${rho.toFixed(4)} kg/m³</span></div>
+    <div class="env-bar-item">대기 <span>${e.rho0>0?'있음':'없음 ⚠️'}</span></div>`;
+}
+
+document.getElementById('altitude').addEventListener('input', updateEnvBar);
+buildEnvTabs(); buildTypeTabs(); updateEnvBar();
+
+// ── HELPERS ──
+function rho(env, alt){ return env.rho0>0 ? env.rho0*Math.exp(-alt/env.H) : 0; }
+function calcArea(m,g,v,rho,cd){ return (2*m*g)/(rho*cd*v*v); }
+function fmtArea(a){ return a>=100?a.toFixed(1):a>=10?a.toFixed(2):a.toFixed(3); }
+
+// ── MAIN CALC ──
+function calculate(){
+  const m      = parseFloat(document.getElementById('mass').value);
+  const vT     = parseFloat(document.getElementById('vTarget').value);
+  const vD     = parseFloat(document.getElementById('vDeploy').value);
+  const alt    = parseFloat(document.getElementById('altitude').value);
+  const sf     = parseFloat(document.getElementById('sf').value);
+  const cx     = parseFloat(document.getElementById('cx').value);
+  const ventP  = parseFloat(document.getElementById('ventPct').value)/100;
+  const ldR    = parseFloat(document.getElementById('ldRatio').value);
+  const nL     = parseInt(document.getElementById('nLines').value);
+  const wind   = parseFloat(document.getElementById('wind').value);
+  const swingA = parseFloat(document.getElementById('swingAngle').value);
+  const lineStr= parseInt(document.getElementById('lineMat').value);
+  const fabG   = parseFloat(document.getElementById('fabric').value);
+  const e      = selEnv;
+  const t      = selType;
+
+  const rhoCur = rho(e, alt);
+
+  if(e.rho0 <= 0){
+    showNoAtmo();
+    return;
+  }
+
+  // ── 벤트 Cd 보정 ──
+  const cdEff = t.cd * (1 - ventP * 0.4);
+
+  // ── 기본 면적 계산 ──
+  const A0   = calcArea(m, e.g, vT, rhoCur, cdEff);
+  const Asf  = A0 * sf;
+  const diam = Math.sqrt(4*Asf/Math.PI);
+
+  // ── 현수선 ──
+  const lineLen  = diam * ldR;
+  const minLines = Math.ceil(diam * 100 / 2);
+  const ldOk     = ldR >= 1.0 && ldR <= 1.5;
+
+  // ── 개산 충격력 ──
+  const Fshock   = cx * 0.5 * rhoCur * cdEff * Asf * vD*vD;
+  const FperLine = Fshock / nL;
+  const lineOk   = FperLine < lineStr * 9.81 * 0.7; // 70% 사용률
+
+  // ── 벤트 홀 ──
+  const ventDiam = diam * Math.sqrt(ventP);
+
+  // ── 드리프트 ──
+  const tFall  = alt / vT;
+  const drift  = wind * tFall;
+  const vEff   = Math.sqrt(vT*vT + wind*wind);
+
+  // ── 원단 무게 ──
+  const fabricWt = Asf * fabG; // g
+
+  // ── 수납 지름 경험식 ──
+  const packD = Math.sqrt(Asf * (fabG/1000) * 0.002) * 100; // cm 경험식
+
+  // ── 안정성 판단 ──
+  const swingStable = ldR >= 1.0;
+  const shockOk     = Fshock < m * e.g * 10;
+  const vEffOk      = vEff < vT * 1.5;
+
+  // ── 환경별 비교 ──
+  const envCompare = ENVS.filter(x=>x.rho0>0).map(x=>{
+    const r = rho(x, alt);
+    const a = calcArea(m, x.g, vT, r, cdEff) * sf;
+    return {env:x, a};
+  });
+  const maxA = Math.max(...envCompare.map(x=>x.a));
+
+  // ── 속도별 비교 ──
+  const speeds = [2,3,4,5,7,10,15,20];
+  const speedMax = calcArea(m, e.g, 2, rhoCur, cdEff)*sf;
+
+  // ── 현수선 장력 그레이드 ──
+  function lineGrade(fp, str){
+    const ratio = fp / (str*9.81);
+    if(ratio < 0.5) return {cls:'ok', text:'안전'};
+    if(ratio < 0.7) return {cls:'ok', text:'적정'};
+    if(ratio < 0.9) return {cls:'warn', text:'주의'};
+    return {cls:'bad', text:'위험'};
+  }
+  const lg = lineGrade(FperLine, lineStr);
+
+  const html = `
+  <!-- Hero -->
+  <div class="result-hero">
+    <div class="hero-card primary">
+      <div class="h-label">펼침 면적 (안전계수 ${sf.toFixed(1)}×)</div>
+      <div class="h-val">${fmtArea(Asf)}</div>
+      <div class="h-unit">m²</div>
+      <div class="h-sub">지름 ${diam.toFixed(2)} m = ${(diam*100).toFixed(0)} cm</div>
+    </div>
+    <div class="hero-card">
+      <div class="h-label">이론 기본 면적</div>
+      <div class="h-val">${fmtArea(A0)}</div>
+      <div class="h-unit">m²  (SF 미적용)</div>
+      <div class="h-sub">유효 Cd ${cdEff.toFixed(3)} (벤트 보정)</div>
+    </div>
+  </div>
+
+  <!-- 주요 지표 -->
+  <div class="metrics-row">
+    <div class="metric">
+      <div class="m-label">최대 항력</div>
+      <div class="m-val">${(0.5*rhoCur*cdEff*Asf*vT*vT).toFixed(1)} N</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">개산 충격력</div>
+      <div class="m-val">${Fshock.toFixed(0)} N</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">단말 속도</div>
+      <div class="m-val">${Math.sqrt((2*m*e.g)/(rhoCur*cdEff*Asf)).toFixed(2)} m/s</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">낙하 시간</div>
+      <div class="m-val">${tFall.toFixed(1)} s</div>
+    </div>
+  </div>
+
+  <!-- 안정성 카드 -->
+  <div class="stab-grid">
+    <div class="stab-card">
+      <h3>🔩 현수선 사양</h3>
+      <div class="stab-row">
+        <span class="s-key">현수선 수</span>
+        <span class="s-val ${nL>=minLines?'ok':'warn'}">${nL}가닥 (최소 ${minLines})</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">현수선 길이</span>
+        <span class="s-val">${lineLen.toFixed(2)} m = ${(lineLen*100).toFixed(0)} cm</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">L/D 비율</span>
+        <span class="s-val ${ldOk?'ok':'warn'}">${ldR.toFixed(1)} ${ldOk?'✓':'⚠ 1.0~1.5 권장'}</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">선 당 충격하중</span>
+        <span class="s-val ${lg.cls}">${(FperLine/9.81).toFixed(1)} kgf — ${lg.text}</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">재료 허용하중</span>
+        <span class="s-val">${lineStr} kgf / 가닥</span>
+      </div>
+    </div>
+
+    <div class="stab-card">
+      <h3>🌬️ 바람 & 착지</h3>
+      <div class="stab-row">
+        <span class="s-key">드리프트 거리</span>
+        <span class="s-val">${drift.toFixed(1)} m</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">실효 착지 속도</span>
+        <span class="s-val ${vEffOk?'ok':'warn'}">${vEff.toFixed(2)} m/s</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">바람 성분</span>
+        <span class="s-val">${wind} m/s 수평</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">허용 진동각</span>
+        <span class="s-val">${swingA}° 이내</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">진동 안정성</span>
+        <span class="s-val ${swingStable?'ok':'warn'}">${swingStable?'안정 (L/D≥1.0)':'불안정 주의'}</span>
+      </div>
+    </div>
+
+    <div class="stab-card">
+      <h3>🎯 캐노피 설계</h3>
+      <div class="stab-row">
+        <span class="s-key">벤트 홀 비율</span>
+        <span class="s-val">${(ventP*100).toFixed(0)}%</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">벤트 홀 지름</span>
+        <span class="s-val">${ventP>0?(ventDiam*100).toFixed(1)+' cm':'없음'}</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">Cd 보정값</span>
+        <span class="s-val">${t.cd} → ${cdEff.toFixed(3)}</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">원단 무게</span>
+        <span class="s-val">${fabricWt.toFixed(1)} g</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">수납 원통 지름</span>
+        <span class="s-val">약 ${packD.toFixed(1)} cm (경험식)</span>
+      </div>
+    </div>
+
+    <div class="stab-card">
+      <h3>⚡ 충격 하중 분석</h3>
+      <div class="stab-row">
+        <span class="s-key">전개 속도</span>
+        <span class="s-val">${vD} m/s</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">충격 계수 Cx</span>
+        <span class="s-val">${cx.toFixed(1)}</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">전체 충격력</span>
+        <span class="s-val ${shockOk?'ok':'warn'}">${Fshock.toFixed(0)} N = ${(Fshock/9.81).toFixed(1)} kgf</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">중력 대비</span>
+        <span class="s-val">${(Fshock/(m*e.g)).toFixed(1)} G</span>
+      </div>
+      <div class="stab-row">
+        <span class="s-key">판정</span>
+        <span class="s-val ${shockOk?'ok':'warn'}">${shockOk?'허용 범위 내':'구조 검토 필요'}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 속도별 면적 비교 -->
+  <div class="chart-section">
+    <h3>목표 착지 속도별 필요 면적</h3>
+    ${speeds.map(s=>{
+      const a = calcArea(m,e.g,s,rhoCur,cdEff)*sf;
+      const pct = Math.min(a/speedMax*100, 100);
+      const isT = s===vT;
+      return `<div class="bar-row">
+        <div class="bar-name">${s} m/s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${isT?'#4a90e2':'#2a3a60'}"></div></div>
+        <div class="bar-val">${fmtArea(a)} m²</div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <!-- 환경별 비교 -->
+  <div class="chart-section">
+    <h3>환경별 필요 면적 비교 (동일 조건)</h3>
+    ${envCompare.map(x=>{
+      const pct = Math.min(x.a/maxA*100, 100);
+      const isA = x.env.id===e.id;
+      return `<div class="bar-row">
+        <div class="bar-name">${x.env.icon} ${x.env.name} ${x.env.sub}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${isA?'#4a90e2':'#2a3a60'}"></div></div>
+        <div class="bar-val">${fmtArea(x.a)} m²</div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <!-- 제작 치수 요약 -->
+  <div class="chart-section">
+    <h3>📐 제작용 치수 요약표</h3>
+    <table class="mat-table">
+      <thead>
+        <tr><th>항목</th><th>값</th><th>비고</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>캐노피 지름</td><td class="hl">${(diam*100).toFixed(0)} cm</td><td>+ 시접 2~3 cm 여유</td></tr>
+        <tr><td>캐노피 면적</td><td class="hl">${fmtArea(Asf)} m²</td><td>안전계수 ${sf.toFixed(1)} 적용</td></tr>
+        <tr><td>벤트 홀 지름</td><td class="hl">${ventP>0?(ventDiam*100).toFixed(1)+' cm':'없음'}</td><td>상단 중앙 원형 절취</td></tr>
+        <tr><td>현수선 수</td><td class="hl">${nL}가닥</td><td>짝수, 균등 배치</td></tr>
+        <tr><td>현수선 길이</td><td class="hl">${(lineLen*100).toFixed(0)} cm</td><td>캐노피 가장자리 기준</td></tr>
+        <tr><td>원단 무게</td><td class="hl">약 ${fabricWt.toFixed(0)} g</td><td>${fabG} g/m² 기준</td></tr>
+        <tr><td>패킹 원통 지름</td><td class="hl">약 ${packD.toFixed(1)} cm</td><td>경험식 참고값</td></tr>
+        <tr><td>최소 선 강도</td><td class="hl">${(FperLine/9.81*1.5).toFixed(1)} kgf</td><td>안전계수 1.5 추가 권장</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>${t.name} (Cd ${t.cd})</strong> — ${t.note}<br>
+    유효 Cd ${cdEff.toFixed(3)} (벤트 ${(ventP*100).toFixed(0)}% 보정). 
+    전개 고도 ${alt} m에서 밀도 ${rhoCur.toFixed(4)} kg/m³.
+    현수선 ${nL}가닥 × ${(lineLen*100).toFixed(0)} cm, 선당 충격 ${(FperLine/9.81).toFixed(1)} kgf.
+    <br>
+    <span style="color:var(--text3);font-size:11px">
+    ※ 본 계산은 준정적(quasi-static) 낙하 조건 기반이며, 전개 과도 구간 해석은 포함하지 않습니다.
+    </span>
+  </div>`;
+
+  document.getElementById('mainArea').innerHTML = html;
+  document.getElementById('mainArea').scrollTop = 0;
+}
+
+function showNoAtmo(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="alert alert-error" style="margin-bottom:16px">
+      ⚠️ 달처럼 대기가 없는 환경에서는 낙하산이 작동하지 않습니다.
+    </div>
+    <div class="note">
+      <strong>대기 없는 환경에서의 착지 방법:</strong><br>
+      · 역추진 로켓 (Retro Rocket) — 아폴로 달착륙선, 큐리오시티<br>
+      · 에어백 착지 — 마스 패스파인더<br>
+      · 레트로-추진 + 스카이크레인 — 퍼시비어런스 로버<br>
+      · 착지 다리 (Landing Leg) 충격 흡수 구조
+    </div>`;
+}
+</script>
+</body>
+</html>
