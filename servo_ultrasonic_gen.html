@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>착륙선 지지대 전개 코드 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080c10; --bg2:#0d1520; --bg3:#111d2e; --bg4:#162235;
+  --line:#1c2d42; --line2:#243850;
+  --dim:#3a5470; --muted:#5a7a9a; --body:#8aaac8;
+  --bright:#c8ddf0; --white:#e8f2fc;
+  --cyan:#00d4ff; --cyan2:#00a8cc; --cyan-glow:rgba(0,212,255,0.12);
+  --green:#00ff9d; --amber:#ffb830; --red:#ff4f6a;
+  --mono:'JetBrains Mono',monospace;
+  --head:'Syne',sans-serif;
+  --hdr-h:52px;
+  --tab-h:56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:var(--mono);
+  background:var(--bg);
+  color:var(--body);
+  overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:40px 40px;opacity:.28;
+}
+
+/* ── HEADER ── */
+.hdr{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:var(--hdr-h);
+  display:flex;align-items:center;gap:10px;
+  padding:0 16px;
+  border-bottom:1px solid var(--line2);
+  background:rgba(8,12,16,.95);
+  backdrop-filter:blur(14px);
+}
+.hdr-badge{
+  background:var(--cyan);color:#000;
+  font-size:9px;font-weight:700;padding:3px 7px;
+  letter-spacing:.1em;text-transform:uppercase;
+  clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);
+  flex-shrink:0;
+}
+.hdr h1{font-family:var(--head);font-size:14px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-sub{font-size:10px;color:var(--muted);margin-left:auto;white-space:nowrap;flex-shrink:0;}
+
+/* ── DESKTOP: 2-col layout ── */
+.desktop-layout{
+  position:fixed;
+  top:var(--hdr-h);left:0;right:0;bottom:0;
+  display:grid;
+  grid-template-columns:360px 1fr;
+  z-index:1;
+}
+
+/* ── MOBILE: tab panels ── */
+.mobile-layout{
+  display:none;
+  position:fixed;
+  top:var(--hdr-h);left:0;right:0;bottom:var(--tab-h);
+  z-index:1;
+  overflow:hidden;
+}
+.tab-panel{
+  position:absolute;inset:0;
+  overflow-y:auto;
+  display:none;
+  background:var(--bg2);
+}
+.tab-panel.active{display:block;}
+.tab-panel::-webkit-scrollbar{width:3px;}
+.tab-panel::-webkit-scrollbar-thumb{background:var(--line2);}
+
+/* ── BOTTOM TAB BAR (mobile) ── */
+.tab-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:var(--tab-h);
+  background:rgba(8,12,16,.97);
+  border-top:1px solid var(--line2);
+  z-index:200;
+  backdrop-filter:blur(14px);
+}
+.tab-bar-inner{
+  display:flex;height:100%;
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;
+  background:transparent;border:none;
+  color:var(--dim);cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  text-transform:uppercase;transition:color .15s;
+  padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab-btn .tab-icon{font-size:18px;line-height:1;}
+.tab-btn.active{color:var(--cyan);}
+.tab-btn.active .tab-icon{filter:drop-shadow(0 0 4px var(--cyan));}
+
+/* ── SIDEBAR / PANEL shared styles ── */
+.panel{
+  background:var(--bg2);
+  border-right:1px solid var(--line2);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.panel::-webkit-scrollbar{width:3px;}
+.panel::-webkit-scrollbar-thumb{background:var(--line2);}
+.panel-section{padding:16px;border-bottom:1px solid var(--line);}
+.sec-label{
+  font-size:9px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+/* ── CONTROLS ── */
+.ctrl{margin-bottom:14px;}
+.ctrl:last-child{margin-bottom:0;}
+.ctrl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.ctrl-head label{font-size:12px;color:var(--bright);font-weight:500;}
+.ctrl-head .val{font-size:16px;font-weight:700;color:var(--cyan);min-width:64px;text-align:right;}
+.ctrl-head .val.green{color:var(--green);}
+.ctrl-head .val.amber{color:var(--amber);}
+input[type=range]{
+  width:100%;height:4px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background:var(--line2);border-radius:2px;outline:none;
+  touch-action:pan-y;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:0;
+  background:var(--cyan);
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+  cursor:pointer;
+}
+input[type=range].green::-webkit-slider-thumb{background:var(--green);}
+input[type=range].amber::-webkit-slider-thumb{background:var(--amber);}
+.ctrl-hint{font-size:10px;color:var(--dim);margin-top:6px;}
+
+/* ── PIN BOXES ── */
+.pin-fixed-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.pin-box{background:var(--bg3);border:1px solid var(--line2);padding:8px 10px;}
+.pin-box .pb-label{font-size:9px;color:var(--dim);margin-bottom:3px;letter-spacing:.06em;}
+.pin-box .pb-val{font-size:16px;font-weight:700;color:var(--cyan);}
+.pin-box .pb-desc{font-size:10px;color:var(--muted);margin-top:1px;}
+.pin-input-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.pin-field label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;}
+.pin-field input{
+  width:100%;background:var(--bg4);border:1px solid var(--line2);
+  color:var(--bright);font-family:var(--mono);font-size:14px;font-weight:600;
+  padding:8px 10px;outline:none;transition:border-color .15s;
+}
+.pin-field input:focus{border-color:var(--cyan);}
+
+/* ── LANDER VIS ── */
+.vis-wrap{padding:14px 16px 0;}
+.vis-box{background:var(--bg);border:1px solid var(--line2);padding:12px;}
+.vis-title{font-size:9px;color:var(--dim);letter-spacing:.1em;margin-bottom:10px;}
+.lander-canvas{position:relative;width:100%;height:130px;display:flex;align-items:center;justify-content:center;}
+.lander-body{
+  position:absolute;width:44px;height:44px;
+  background:var(--bg3);border:2px solid var(--line2);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;z-index:2;
+}
+.leg{
+  position:absolute;width:3px;height:44px;background:var(--cyan);
+  transform-origin:top center;border-radius:2px;
+  transition:transform .5s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 6px var(--cyan2);z-index:1;
+}
+.leg-label{
+  position:absolute;font-size:8px;color:var(--cyan);
+  font-weight:600;white-space:pre;text-align:center;z-index:3;
+  transition:all .5s;
+}
+.vis-dist{margin-top:10px;display:flex;align-items:center;gap:8px;}
+.dist-bar-wrap{flex:1;height:6px;background:var(--bg3);border:1px solid var(--line);position:relative;}
+.dist-bar-fill{height:100%;background:var(--cyan);box-shadow:0 0 6px var(--cyan2);transition:width .3s;}
+.dist-marker{position:absolute;top:-5px;height:16px;width:2px;background:var(--red);transition:left .3s;}
+.dist-label{font-size:10px;color:var(--dim);white-space:nowrap;}
+
+/* ── CODE AREA ── */
+.code-area{
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  overflow:hidden;
+}
+.code-toolbar{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-bottom:1px solid var(--line2);
+  background:var(--bg2);flex-shrink:0;
+}
+.toolbar-dots{display:flex;gap:6px;align-items:center;}
+.toolbar-dot{width:10px;height:10px;border-radius:50%;}
+.toolbar-dot.r{background:#ff5f57;}
+.toolbar-dot.y{background:#febc2e;}
+.toolbar-dot.g{background:#28c840;}
+.code-filename{font-size:11px;color:var(--muted);}
+.copy-btn{
+  margin-left:auto;background:transparent;border:1px solid var(--line2);
+  color:var(--muted);font-family:var(--mono);font-size:10px;
+  padding:5px 12px;cursor:pointer;letter-spacing:.06em;
+  transition:all .15s;text-transform:uppercase;
+  -webkit-tap-highlight-color:transparent;
+}
+.copy-btn:active,.copy-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.copy-btn.copied{border-color:var(--green);color:var(--green);}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--green);letter-spacing:.1em;font-weight:700;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+
+.code-scroll{flex:1;overflow-y:auto;overflow-x:auto;}
+.code-scroll::-webkit-scrollbar{width:3px;height:3px;}
+.code-scroll::-webkit-scrollbar-thumb{background:var(--line2);}
+pre#codeOut{
+  font-family:var(--mono);font-size:12px;line-height:1.75;
+  padding:16px 0;margin:0;tab-size:2;white-space:pre;
+  min-width:max-content;
+}
+.code-line{display:flex;min-height:1.75em;padding:0 16px 0 0;transition:background .1s;}
+.code-line:hover{background:rgba(255,255,255,.025);}
+.ln{width:38px;flex-shrink:0;text-align:right;color:var(--line2);font-size:11px;padding-right:14px;user-select:none;line-height:1.75;}
+.tok{line-height:1.75;white-space:pre;}
+.kw{color:#569cd6;} .typ{color:#4ec9b0;} .fn{color:#dcdcaa;}
+.num{color:#b5cea8;} .str{color:#ce9178;} .cmt{color:#4a6070;font-style:italic;} .pp{color:#c586c0;}
+
+/* ── SERIAL PANEL ── */
+.serial-panel{
+  height:160px;flex-shrink:0;
+  border-top:1px solid var(--line2);
+  background:var(--bg2);display:flex;flex-direction:column;
+}
+.serial-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px;border-bottom:1px solid var(--line);flex-shrink:0;
+}
+.serial-bar span{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;}
+.serial-bar .sbaud{margin-left:auto;font-size:10px;color:var(--muted);}
+.serial-out{flex:1;overflow-y:auto;padding:6px 14px;font-size:11px;line-height:1.7;}
+.serial-out::-webkit-scrollbar{width:2px;}
+.serial-out::-webkit-scrollbar-thumb{background:var(--line2);}
+.sline{display:flex;gap:6px;flex-wrap:wrap;}
+.sline .ts{color:var(--dim);}
+.sline .sv{color:var(--green);}
+.sline .sv.act{color:var(--cyan);}
+.sline .sv.dim{color:var(--muted);}
+
+/* ── MOBILE SERIAL (in its own tab) ── */
+.serial-tab-inner{
+  display:flex;flex-direction:column;height:100%;
+}
+.serial-tab-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;border-bottom:1px solid var(--line);flex-shrink:0;
+  background:var(--bg2);
+}
+.serial-tab-bar span{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;}
+.serial-tab-bar .sbaud2{margin-left:auto;font-size:11px;color:var(--muted);}
+.serial-tab-out{
+  flex:1;overflow-y:auto;padding:10px 16px;
+  font-size:12px;line-height:1.8;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .desktop-layout{display:none;}
+  .mobile-layout{display:block;}
+  .tab-bar{display:block;}
+  .hdr-sub{display:none;}
+}
+@media(min-width:769px){
+  .desktop-layout{display:grid;}
+  .mobile-layout{display:none;}
+  .tab-bar{display:none;}
+}
+
+/* ── COPY MODAL ── */
+.copy-modal-overlay{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  align-items:flex-end;justify-content:center;
+}
+.copy-modal-overlay.show{display:flex;}
+.copy-modal{
+  width:100%;max-width:640px;
+  background:var(--bg2);border-top:2px solid var(--cyan);
+  border-radius:12px 12px 0 0;
+  padding:16px;
+  animation:slideUp .2s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.copy-modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.copy-modal-head span{font-size:12px;color:var(--bright);font-weight:600;}
+.copy-modal-close{
+  background:transparent;border:1px solid var(--line2);
+  color:var(--muted);font-size:11px;padding:4px 10px;
+  cursor:pointer;font-family:var(--mono);
+  -webkit-tap-highlight-color:transparent;
+}
+.copy-modal textarea{
+  width:100%;height:220px;
+  background:var(--bg);border:1px solid var(--line2);
+  color:var(--green);font-family:var(--mono);font-size:11px;
+  line-height:1.6;padding:10px;resize:none;outline:none;
+  -webkit-user-select:all;user-select:all;
+}
+.copy-modal-hint{
+  margin-top:8px;font-size:11px;color:var(--dim);text-align:center;
+}
+.copy-modal-btns{display:flex;gap:8px;margin-top:10px;}
+.copy-modal-btns button{
+  flex:1;padding:12px;border:none;
+  font-family:var(--mono);font-size:13px;font-weight:600;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.btn-select-all{background:var(--bg3);color:var(--muted);border:1px solid var(--line2);}
+.btn-done{background:var(--cyan);color:#000;font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="hdr">
+  <div class="hdr-badge">SRC</div>
+  <h1>착륙선 지지대 전개 코드 생성기</h1>
+  <span class="hdr-sub">초음파 → 4-서보 동시 전개</span>
+</header>
+
+<!-- ════════════════════════════
+     DESKTOP LAYOUT (2-column)
+════════════════════════════ -->
+<div class="desktop-layout">
+  <aside class="panel" id="desktopPanel"></aside>
+  <div class="code-area" id="desktopCode">
+    <div class="code-toolbar">
+      <div class="toolbar-dots">
+        <div class="toolbar-dot r"></div>
+        <div class="toolbar-dot y"></div>
+        <div class="toolbar-dot g"></div>
+      </div>
+      <span class="code-filename">lander_legs_deploy.ino</span>
+      <div class="live-badge" style="margin-left:12px"><div class="live-dot"></div>LIVE</div>
+      <button class="copy-btn" id="copyBtnD" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="code-scroll"><pre id="codeOutD"></pre></div>
+    <div class="serial-panel">
+      <div class="serial-bar">
+        <span>// Serial Monitor Preview</span>
+        <span class="sbaud" id="baudLabelD">9600 baud</span>
+      </div>
+      <div class="serial-out" id="serialOutD"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     MOBILE LAYOUT (tabs)
+════════════════════════════ -->
+<div class="mobile-layout">
+  <!-- Tab: 설정 -->
+  <div class="tab-panel active" id="tabSettings"></div>
+  <!-- Tab: 코드 -->
+  <div class="tab-panel" id="tabCode">
+    <div class="code-area" style="height:100%;">
+      <div class="code-toolbar">
+        <div class="toolbar-dots">
+          <div class="toolbar-dot r"></div>
+          <div class="toolbar-dot y"></div>
+          <div class="toolbar-dot g"></div>
+        </div>
+        <span class="code-filename" style="font-size:10px">lander_legs_deploy.ino</span>
+        <div class="live-badge" style="margin-left:8px"><div class="live-dot"></div>LIVE</div>
+        <button class="copy-btn" id="copyBtnM" onclick="copyCode()">Copy</button>
+      </div>
+      <div class="code-scroll" style="flex:1"><pre id="codeOutM"></pre></div>
+    </div>
+  </div>
+  <!-- Tab: 시리얼 -->
+  <div class="tab-panel" id="tabSerial">
+    <div class="serial-tab-inner">
+      <div class="serial-tab-bar">
+        <span>// Serial Monitor Preview</span>
+        <span class="sbaud2" id="baudLabelM">9600 baud</span>
+      </div>
+      <div class="serial-tab-out" id="serialOutM"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BOTTOM TAB BAR ── -->
+<nav class="tab-bar">
+  <div class="tab-bar-inner">
+    <button class="tab-btn active" id="btnSettings" onclick="switchTab('Settings')">
+      <span class="tab-icon">⚙️</span>설정
+    </button>
+    <button class="tab-btn" id="btnCode" onclick="switchTab('Code')">
+      <span class="tab-icon">📄</span>코드
+    </button>
+    <button class="tab-btn" id="btnSerial" onclick="switchTab('Serial')">
+      <span class="tab-icon">📟</span>시리얼
+    </button>
+  </div>
+</nav>
+
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+const S = {
+  landDist:   10,   // LAND_DISTANCE_CM
+  angleClose: 0,    // ANGLE_CLOSE (초기각도)
+  angleOpen:  180,  // ANGLE_OPEN  (전개각도)
+  stepDelay:  15,   // 전개속도 ms/°
+};
+
+// ════════════════════════════════════════
+// TAB SWITCHING (mobile)
+// ════════════════════════════════════════
+function switchTab(name){
+  ['Settings','Code','Serial'].forEach(t=>{
+    document.getElementById('tab'+t).classList.toggle('active', t===name);
+    document.getElementById('btn'+t).classList.toggle('active', t===name);
+  });
+}
+
+// ════════════════════════════════════════
+// BUILD PANEL HTML (shared for desktop & mobile)
+// ════════════════════════════════════════
+function panelHTML(){
+  return `
+  <div class="vis-wrap">
+    <div class="vis-box">
+      <div class="vis-title">// LANDER TOP-DOWN VIEW</div>
+      <div class="lander-canvas" id="landerCanvas">
+        <div class="lander-body">🛸</div>
+      </div>
+      <div class="vis-dist">
+        <span class="dist-label">0</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar-fill" id="distBar" style="width:20%"></div>
+          <div class="dist-marker" id="distMarker" style="left:15%"></div>
+        </div>
+        <span class="dist-label" id="distMax">50 cm</span>
+      </div>
+      <div style="font-size:9px;color:var(--dim);margin-top:5px;text-align:center">
+        ◆ 빨간선 = 착지 감지 거리 &nbsp;|&nbsp; 지지대 4개 동시 전개
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="sec-label">① 초음파 거리 설정</div>
+    <div class="ctrl">
+      <div class="ctrl-head"><label>착지 감지 거리</label><span class="val" id="landDistVal">10 cm</span></div>
+      <input type="range" id="landDist" min="2" max="50" value="10" step="1">
+      <div class="ctrl-hint">이 거리 이하 감지 시 지지대 전개 (LAND_DISTANCE_CM)</div>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="sec-label">② 서보 초기 각도</div>
+    <div class="ctrl">
+      <div class="ctrl-head"><label>초기 각도 (접힘)</label><span class="val green" id="angleCloseVal">0°</span></div>
+      <input type="range" class="green" id="angleClose" min="0" max="180" value="0" step="1">
+      <div class="ctrl-hint">착륙 전 지지대 수납 위치 (ANGLE_CLOSE)</div>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="sec-label">③ 착륙 시 전개 각도</div>
+    <div class="ctrl">
+      <div class="ctrl-head"><label>전개 각도 (펼침)</label><span class="val amber" id="angleOpenVal">180°</span></div>
+      <input type="range" class="amber" id="angleOpen" min="0" max="180" value="180" step="1">
+      <div class="ctrl-hint">착지 감지 후 지지대 목표 각도 (ANGLE_OPEN)</div>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="sec-label">④ 전개 속도</div>
+    <div class="ctrl">
+      <div class="ctrl-head"><label>전개 속도</label><span class="val" id="stepDelayVal">15 ms/°</span></div>
+      <input type="range" id="stepDelay" min="1" max="80" value="15" step="1">
+      <div class="ctrl-hint">낮을수록 빠름 · 높을수록 부드러움 (DEPLOY_STEP_MS)</div>
+    </div>
+    <div style="margin-top:10px;padding:10px;background:var(--bg3);border:1px solid var(--line2);border-radius:4px;">
+      <div style="font-size:10px;color:var(--dim);margin-bottom:6px;">예상 전개 시간</div>
+      <div style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--mono)" id="deployTimeVal">2700 ms</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:2px;" id="deployTimeFormula">180° × 15ms</div>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="sec-label">핀 정보 (고정)</div>
+    <div class="pin-fixed-grid">
+      <div class="pin-box"><div class="pb-label">LEG 1</div><div class="pb-val">D3</div><div class="pb-desc">서보 #1</div></div>
+      <div class="pin-box"><div class="pb-label">LEG 2</div><div class="pb-val">D5</div><div class="pb-desc">서보 #2</div></div>
+      <div class="pin-box"><div class="pb-label">LEG 3</div><div class="pb-val">D6</div><div class="pb-desc">서보 #3</div></div>
+      <div class="pin-box"><div class="pb-label">LEG 4</div><div class="pb-val">D11</div><div class="pb-desc">서보 #4</div></div>
+    </div>
+    <div style="margin-top:8px;" class="pin-fixed-grid">
+      <div class="pin-box"><div class="pb-label">TRIG</div><div class="pb-val">D9</div><div class="pb-desc">HC-SR04</div></div>
+      <div class="pin-box"><div class="pb-label">ECHO</div><div class="pb-val">D10</div><div class="pb-desc">HC-SR04</div></div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════
+// INJECT PANEL INTO BOTH DESKTOP & MOBILE
+// ════════════════════════════════════════
+function injectPanels(){
+  const html = panelHTML();
+  document.getElementById('desktopPanel').innerHTML = html;
+  document.getElementById('tabSettings').innerHTML  = html;
+  bindControls();
+  buildLegs();
+  updateDeployTime();
+}
+
+// ════════════════════════════════════════
+// BIND CONTROLS (live update)
+// ════════════════════════════════════════
+function bindControls(){
+  function sync(id, key, fmt){
+    document.querySelectorAll('#'+id).forEach(el=>{
+      el.addEventListener('input',()=>{
+        S[key] = parseFloat(el.value);
+        document.querySelectorAll('#'+id+'Val').forEach(v=>v.textContent=fmt(S[key]));
+        updateDeployTime();
+        render(); updateVis();
+      });
+    });
+  }
+  sync('landDist',   'landDist',   v=>`${v} cm`);
+  sync('angleClose', 'angleClose', v=>`${v}°`);
+  sync('angleOpen',  'angleOpen',  v=>`${v}°`);
+  sync('stepDelay',  'stepDelay',  v=>`${v} ms/°`);
+}
+
+function updateDeployTime(){
+  const ang = Math.abs(S.angleOpen - S.angleClose);
+  const ms  = ang * S.stepDelay;
+  document.querySelectorAll('#deployTimeVal').forEach(el=>el.textContent = ms + ' ms');
+  document.querySelectorAll('#deployTimeFormula').forEach(el=>el.textContent = ang + '° × ' + S.stepDelay + 'ms');
+}
+
+// ════════════════════════════════════════
+// LANDER VIS
+// ════════════════════════════════════════
+const LEG_ANGLES  = [315,45,135,225];
+const LEG_LABELS  = ['LEG1\nD3','LEG2\nD5','LEG3\nD6','LEG4\nD11'];
+const BASE_R = 24;
+
+function buildLegs(){
+  document.querySelectorAll('.lander-canvas').forEach(canvas=>{
+    canvas.querySelectorAll('.leg,.leg-label').forEach(e=>e.remove());
+    LEG_ANGLES.forEach((_,i)=>{
+      const leg = document.createElement('div'); leg.className='leg'; leg.id='leg'+i+'_'+canvas.id; canvas.appendChild(leg);
+      const lbl = document.createElement('div'); lbl.className='leg-label'; lbl.id='leglbl'+i+'_'+canvas.id; canvas.appendChild(lbl);
+    });
+  });
+  updateVis();
+}
+
+function updateVis(){
+  const pct = Math.min(S.landDist/50*100,100).toFixed(1);
+  document.querySelectorAll('#distMarker').forEach(el=>el.style.left=pct+'%');
+  document.querySelectorAll('#distMax').forEach(el=>el.textContent='50 cm');
+
+  document.querySelectorAll('.lander-canvas').forEach(canvas=>{
+    LEG_ANGLES.forEach((baseAngle,i)=>{
+      const leg = canvas.querySelector('.leg:nth-of-type('+(i+1)+')') || document.getElementById('leg'+i+'_'+canvas.id);
+      const lbl = document.getElementById('leglbl'+i+'_'+canvas.id);
+      if(!leg) return;
+      const deployRad = S.angleOpen*Math.PI/180;
+      const spread = Math.sin(deployRad)*46;
+      const outDist = BASE_R+spread;
+      const baseRad = baseAngle*Math.PI/180;
+      const tipX = outDist*Math.sin(baseRad);
+      const tipY = -outDist*Math.cos(baseRad);
+      const edgeX = (BASE_R/2)*Math.sin(baseRad);
+      const edgeY = -(BASE_R/2)*Math.cos(baseRad);
+      const dx=tipX-edgeX, dy=tipY-edgeY;
+      const len=Math.sqrt(dx*dx+dy*dy);
+      const angle=Math.atan2(dx,-dy)*180/Math.PI;
+      leg.style.cssText=`position:absolute;width:3px;height:${len}px;background:var(--cyan);transform-origin:top center;border-radius:2px;box-shadow:0 0 6px var(--cyan2);z-index:1;transition:transform .5s cubic-bezier(.4,0,.2,1);left:calc(50% + ${edgeX}px - 1.5px);top:calc(50% + ${edgeY}px);transform:rotate(${angle}deg);`;
+      if(lbl){
+        const lblX=tipX+10*Math.sin(baseRad), lblY=tipY-10*Math.cos(baseRad);
+        lbl.style.cssText=`position:absolute;font-size:8px;color:var(--cyan);font-weight:600;white-space:pre;text-align:center;z-index:3;transition:all .5s;left:calc(50% + ${lblX}px - 16px);top:calc(50% + ${lblY}px - 10px);`;
+        lbl.textContent=LEG_LABELS[i];
+      }
+    });
+  });
+}
+
+// preview animation
+let previewDeploy=false;
+setInterval(()=>{
+  previewDeploy=!previewDeploy;
+  const orig=S.angleOpen;
+  S.angleOpen = previewDeploy ? S.angleOpen : S.angleClose;
+  updateVis();
+  S.angleOpen=orig;
+  const d=previewDeploy?S.landDist*0.5:S.landDist*1.8;
+  document.querySelectorAll('#distBar').forEach(el=>el.style.width=Math.min(d/S.maxDist*100,100)+'%');
+},1800);
+
+// ════════════════════════════════════════
+// SERIAL PREVIEW
+// ════════════════════════════════════════
+let serialLines=[], prevTriggered=false;
+function pushSerial(){
+  const dist=parseFloat((Math.random()*220+5).toFixed(1));
+  const triggered=dist<=S.landDist;
+  const ts=new Date().toTimeString().slice(0,8);
+  const colorMap={event:'act',deploy:'act',retract:'sv',hold:'sv',idle:'dim'};
+
+  if(triggered!==prevTriggered){
+    if(triggered){
+      serialLines.push({ts,type:'event',msg:`[** TRIGGER **] ${dist} cm <= ${S.landDist} cm`});
+      serialLines.push({ts,type:'deploy',msg:`[DEPLOY] LEG1~4 -> ${S.angleOpen}deg  (${S.stepDelay}ms/°)`});
+    } else {
+      serialLines.push({ts,type:'event',msg:`[CLEAR] ${dist} cm > ${S.landDist} cm`});
+      serialLines.push({ts,type:'retract',msg:`[RESET] LEG1~4 -> ${S.angleClose}deg (즉시)`});
+    }
+    prevTriggered=triggered;
+  } else {
+    serialLines.push({ts,type:triggered?'hold':'idle',
+      msg:triggered?`[DIST] ${dist} cm | HOLD ${S.angleOpen}deg`:`[DIST] ${dist} cm | --`});
+  }
+  if(serialLines.length>18) serialLines.shift();
+
+  const html=serialLines.map(l=>`<div class="sline"><span class="ts">${l.ts}</span><span class="sv ${colorMap[l.type]||'sv'}">${l.msg}</span></div>`).join('');
+  document.querySelectorAll('#serialOutD,#serialOutM').forEach(el=>{el.innerHTML=html;el.scrollTop=9999;});
+}
+setInterval(pushSerial,1200);
+
+// ════════════════════════════════════════
+// SYNTAX HIGHLIGHTER
+// ════════════════════════════════════════
+function hl(s){
+  return s
+    .replace(/\/\/.*/g,m=>`<span class="cmt">${m}</span>`)
+    .replace(/\b(#include|#define)\b/g,`<span class="pp">$1</span>`)
+    .replace(/\b(void|int|long|float|bool|unsigned|const|if|else|while|for|return|true|false)\b/g,`<span class="kw">$1</span>`)
+    .replace(/\b(Servo|Serial)\b/g,`<span class="typ">$1</span>`)
+    .replace(/\b(setup|loop|pinMode|digitalWrite|delayMicroseconds|delay|pulseIn|attach|write|begin|print|println)\b/g,`<span class="fn">$1</span>`)
+    .replace(/"([^"]*)"/g,`<span class="str">"$1"</span>`)
+    .replace(/\b(\d+)\b/g,`<span class="num">$1</span>`);
+}
+
+// ════════════════════════════════════════
+// CODE GENERATOR
+// ════════════════════════════════════════
+function buildCode(){
+  const {landDist, angleClose, angleOpen, stepDelay} = S;
+  const ang = Math.abs(angleOpen - angleClose);
+  const deployMs = ang * stepDelay;
+  // pulseIn timeout: 거리 x 2 / 0.0343 us, 최대 MAX_DIST 기준
+  const maxDist = Math.max(landDist * 3, 50);
+  const pulseTimeout = Math.ceil((maxDist * 2 / 0.0343) + 200);
+
+  return `#include <Servo.h>
+
+// ── 핀 설정 ──────────────────────────────
+const int TRIG_PIN    = 9;
+const int ECHO_PIN    = 10;
+const int SERVO_PIN_1 = 3;
+const int SERVO_PIN_2 = 5;
+const int SERVO_PIN_3 = 6;
+const int SERVO_PIN_4 = 11;
+
+// ── 파라미터 ─────────────────────────────
+const float LAND_DISTANCE_CM = ${landDist.toFixed(1)};
+const float RESET_DISTANCE_CM = ${(landDist + 5).toFixed(1)};
+const int   ANGLE_CLOSE      = ${angleClose};
+const int   ANGLE_OPEN       = ${angleOpen};
+const int   DEPLOY_STEP_MS   = ${stepDelay};
+// 예상 전개 시간: ${ang}deg x ${stepDelay}ms = ${deployMs}ms
+
+// ── 변수 ─────────────────────────────────
+Servo leg1, leg2, leg3, leg4;
+bool landed = false;
+unsigned long lastMeasure = 0;
+const unsigned long MEASURE_INTERVAL = 50;  // ms
+
+// ── 초기화 ───────────────────────────────
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  leg1.attach(SERVO_PIN_1);
+  leg2.attach(SERVO_PIN_2);
+  leg3.attach(SERVO_PIN_3);
+  leg4.attach(SERVO_PIN_4);
+  setAllLegs(ANGLE_CLOSE);
+}
+
+// ── 메인 루프 ────────────────────────────
+void loop() {
+  if (millis() - lastMeasure < MEASURE_INTERVAL) return;
+  lastMeasure = millis();
+
+  float dist = getDistance();
+  if (dist < 0) return;  // 측정 실패 무시
+
+  if (!landed && dist <= LAND_DISTANCE_CM) {
+    sweepLegs(ANGLE_CLOSE, ANGLE_OPEN, DEPLOY_STEP_MS);
+    landed = true;
+  }
+
+  if (landed && dist > RESET_DISTANCE_CM) {
+    setAllLegs(ANGLE_CLOSE);
+    landed = false;
+  }
+}
+
+// ── 함수 ─────────────────────────────────
+void setAllLegs(int angle) {
+  leg1.write(angle);
+  leg2.write(angle);
+  leg3.write(angle);
+  leg4.write(angle);
+}
+
+void sweepLegs(int from, int to, int stepMs) {
+  int step = (from < to) ? 1 : -1;
+  for (int a = from; a != to + step; a += step) {
+    setAllLegs(a);
+    delay(stepMs);
+  }
+}
+
+float getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long t = pulseIn(ECHO_PIN, HIGH, ${pulseTimeout});
+  if (t == 0) return -1.0;
+  return (t * 0.0343) / 2.0;
+}`;
+}
+
+// ════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════
+function render(){
+  const lines=buildCode().split('\n');
+  const html=lines.map((raw,i)=>{
+    const safe=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<div class="code-line"><span class="ln">${i+1}</span><span class="tok">${hl(safe)}</span></div>`;
+  }).join('');
+  document.querySelectorAll('#codeOutD,#codeOutM').forEach(el=>el.innerHTML=html);
+  document.querySelectorAll('#baudLabelD,#baudLabelM').forEach(el=>el.textContent=S.baud+' baud');
+}
+
+// ── 복사 함수 ──────────────────────────────
+// 전략: Clipboard API → execCommand → 모달(최종 폴백)
+// ── 복사 ──────────────────────────────────
+// 모바일: 항상 모달 (보이는 textarea에서 복사)
+// 데스크탑: Clipboard API → 모달 폴백
+function copyCode(){
+  const code = buildCode();
+  const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+
+  if(!isMobile && navigator.clipboard && window.isSecureContext){
+    // 데스크탑 + HTTPS: Clipboard API
+    navigator.clipboard.writeText(code)
+      .then(()=>{ flashBtns('Copied! ✓'); })
+      .catch(()=>openCopyModal(code));
+  } else {
+    // 모바일 또는 비보안 환경: 모달 직접 오픈
+    openCopyModal(code);
+  }
+}
+
+function flashBtns(label){
+  document.querySelectorAll('#copyBtnD,#copyBtnM').forEach(btn=>{
+    btn.textContent = label;
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 2200);
+  });
+}
+
+// ── 복사 모달 ──────────────────────────────
+function openCopyModal(text){
+  const overlay = document.getElementById('copyModalOverlay');
+  const ta      = document.getElementById('copyModalTA');
+  const hint    = document.getElementById('copyModalHint');
+  const btnCopy = document.getElementById('modalCopyBtn');
+
+  if(!overlay || !ta || !hint || !btnCopy){
+    alert('코드를 직접 선택해서 복사해주세요.');
+    return;
+  }
+
+  ta.value = text;
+  hint.textContent = '아래 버튼을 눌러 복사하세요';
+  hint.style.color = 'var(--body)';
+  btnCopy.textContent = '📋 전체선택 + 복사';
+  btnCopy.style.background = 'var(--cyan)';
+  overlay.classList.add('show');
+
+  // 모달 렌더 후 자동 선택 시도
+  setTimeout(()=>{
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, 999999);
+  }, 80);
+}
+
+function modalCopy(){
+  const ta   = document.getElementById('copyModalTA');
+  const hint = document.getElementById('copyModalHint');
+  const btn  = document.getElementById('modalCopyBtn');
+  if(!ta || !hint || !btn) return;
+
+  // 1. 먼저 선택
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+
+  // 2. Clipboard API 시도 (모달 내 버튼 클릭 = 사용자 제스처)
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value)
+      .then(()=>{
+        hint.textContent = '✅ 복사됐습니다!';
+        hint.style.color = 'var(--green)';
+        btn.textContent  = '✅ 복사 완료';
+        btn.style.background = 'var(--green2)';
+        flashBtns('Copied! ✓');
+        setTimeout(closeCopyModal, 1500);
+      })
+      .catch(()=> execInModal(ta, hint, btn));
+    return;
+  }
+
+  // 3. execCommand 시도
+  execInModal(ta, hint, btn);
+}
+
+function execInModal(ta, hint, btn){
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(e){}
+  if(ok){
+    hint.textContent = '✅ 복사됐습니다!';
+    hint.style.color = 'var(--green)';
+    btn.textContent  = '✅ 복사 완료';
+    btn.style.background = 'var(--green2)';
+    flashBtns('Copied! ✓');
+    setTimeout(closeCopyModal, 1500);
+  } else {
+    hint.textContent = '텍스트가 선택됐습니다 → 길게 눌러 [복사]를 탭하세요';
+    hint.style.color = 'var(--amber)';
+    btn.textContent  = '🔁 다시 선택';
+  }
+}
+
+function closeCopyModal(e){
+  if(e && e.target !== document.getElementById('copyModalOverlay')) return;
+  document.getElementById('copyModalOverlay').classList.remove('show');
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+injectPanels();
+render();
+pushSerial();
+</script>
+
+<!-- ── COPY MODAL ── -->
+<div class="copy-modal-overlay" id="copyModalOverlay" onclick="closeCopyModal(event)">
+  <div class="copy-modal">
+    <div class="copy-modal-head">
+      <span>📋 코드 복사</span>
+      <button class="copy-modal-close" onclick="closeCopyModal()">닫기</button>
+    </div>
+    <textarea id="copyModalTA" readonly spellcheck="false"></textarea>
+    <div class="copy-modal-hint" id="copyModalHint">전체선택 후 복사하세요</div>
+    <div class="copy-modal-btns">
+      <button class="btn-done" id="modalCopyBtn" onclick="modalCopy()">📋 전체선택 + 복사</button>
+      <button class="btn-select-all" onclick="closeCopyModal()">닫기</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
